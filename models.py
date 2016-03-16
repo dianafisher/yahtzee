@@ -17,28 +17,46 @@ class Game(ndb.Model):
     """ Game object """
     game_over = ndb.BooleanProperty(required=True, default=False)
     user = ndb.KeyProperty(required=True, kind='User')
+    history = ndb.PickleProperty(required=True)
+
+    @classmethod
+    def new_game(cls, user):
+        """Creates and returns a new game"""
+        game = Game(user=user)
+        game.history = []
+        game.put()
+        return game
+
+    def to_form(self, message):
+        """Returns a GameForm representation of the Game"""
+        form = GameForm(urlsafe_key=self.key.urlsafe(),
+                        user_name=self.user.get().name,
+                        message=message,
+                        game_over=self.game_over)
+        return form
 
     def end_game(self, won=False):
         """Ends the game - if won is True, the player won. - if won is False,
         the player lost."""
         self.game_over = True
         self.put()
-        # Add the game to the score 'board'
-        score = Score(user=self.user, date=date.today(), won=won,
-                      guesses=self.attempts_allowed - self.attempts_remaining)
-        score.put()
+        # # Add the game to the score 'board'
+        # score = Score(user=self.user, date=date.today(), won=won,
+        #               guesses=self.attempts_allowed - self.attempts_remaining)
+        # score.put()
 
 class ScoreCard(ndb.Model):
     """ScoreCard object"""
     user = ndb.KeyProperty(required=True, kind='User')
+    game = ndb.KeyProperty(required=True, kind='Game')
     bonus_points = ndb.IntegerProperty(default=0)
     is_full = ndb.BooleanProperty(required=True, default=False)
     category_scores = ndb.PickleProperty(required=True)
 
     @classmethod
-    def new_scorecard(user):
+    def new_scorecard(cls, user, game):
         """Creates a new score card for a user"""
-        score_card = ScoreCard(user=user)
+        score_card = ScoreCard(user=user, game=game)
         scores = {}
         scores['ACES'] = -1
         scores['TWOS'] = -1
@@ -92,15 +110,14 @@ class CategoryType(messages.Enum):
 class GameForm(messages.Message):
     """GameForm for outbound game state information"""
     urlsafe_key = messages.StringField(1, required=True)    
-    game_over = messages.BooleanField(3, required=True)
-    message = messages.StringField(4, required=True)
-    user_name = messages.StringField(5, required=True)
+    game_over = messages.BooleanField(2, required=True)
+    message = messages.StringField(3, required=True)
+    user_name = messages.StringField(4, required=True)
 
 
 class NewGameForm(messages.Message):
     """Used to create a new game"""
     user_name = messages.StringField(1, required=True)    
-    attempts = messages.IntegerField(4, default=5)
 
 
 class MakeMoveForm(messages.Message):
@@ -125,4 +142,6 @@ class StringMessage(messages.Message):
     """StringMessage-- outbound (single) string message"""
     message = messages.StringField(1, required=True)    
 
-    
+class RollDiceForm(messages.Message):
+    """Used to make a move in an existing game"""
+    user_name = messages.StringField(1, required=True)    
