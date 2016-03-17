@@ -88,6 +88,39 @@ class Score(ndb.Model):
 
 class Turn(ndb.Model):
     """Turn object - Each turn consits of up to three rolls."""
+    user = ndb.KeyProperty(required=True, kind='User')
+    game = ndb.KeyProperty(required=True, kind='Game')
+    
+
+class Roll(ndb.Model):
+    """Roll object """
+    user = ndb.KeyProperty(required=True, kind='User')
+    game = ndb.KeyProperty(required=True, kind='Game')
+    dice = ndb.PickleProperty(required=True)
+
+    @classmethod
+    def new_roll(cls, user, game):
+        """Creates a new turn for a user"""
+        roll = Roll(user=user, 
+                    game=game)
+
+        roll.dice = []
+        for i in range(5):
+            value = random.choice(range(1, 7))
+            roll.dice.append(value)
+            print value
+
+        roll.put()
+        return roll
+
+    def to_form(self):
+        return RollResultForm(user_name=self.user.get().name,
+                            dice1=self.dice[0],
+                            dice2=self.dice[1],
+                            dice3=self.dice[2],
+                            dice4=self.dice[3],
+                            dice5=self.dice[4],
+                            )
 
 # Forms/Messages
 
@@ -145,3 +178,11 @@ class StringMessage(messages.Message):
 class RollDiceForm(messages.Message):
     """Used to make a move in an existing game"""
     user_name = messages.StringField(1, required=True)    
+
+class RollResultForm(messages.Message):
+    user_name = messages.StringField(1, required=True)
+    dice1 = messages.IntegerField(2, required=True)
+    dice2 = messages.IntegerField(3, required=True)
+    dice3 = messages.IntegerField(4, required=True)
+    dice4 = messages.IntegerField(5, required=True)
+    dice5 = messages.IntegerField(6, required=True)

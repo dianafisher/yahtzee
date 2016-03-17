@@ -15,8 +15,8 @@ from google.appengine.api import taskqueue
 
 from google.appengine.ext import ndb
 
-from models import User, Game, Score, ScoreCard
-from models import StringMessage, NewGameForm, GameForm, RollDiceForm
+from models import User, Game, Score, ScoreCard, Roll
+from models import StringMessage, NewGameForm, GameForm, RollDiceForm, RollResultForm
 
 from utils import get_by_urlsafe
 
@@ -77,7 +77,7 @@ class YahtzeeApi(remote.Service):
 
 # Roll Dice
     @endpoints.method(request_message=ROLL_DICE_REQUEST,
-                      response_message=StringMessage,
+                      response_message=RollResultForm,
                       path='game/{urlsafe_game_key}',
                       name='roll_dice',
                       http_method='PUT')
@@ -89,7 +89,10 @@ class YahtzeeApi(remote.Service):
         if game.game_over:
             raise endpoints.NotFoundException('Game already over')
 
-        return StringMessage(message='Dice rolled!')
+        user = User.query(User.name == request.user_name).get()
+        roll = Roll.new_roll(user.key, game.key)
+
+        return roll.to_form()
 
 # registers API
 api = endpoints.api_server([YahtzeeApi])         
