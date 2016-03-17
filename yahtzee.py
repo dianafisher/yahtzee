@@ -98,9 +98,12 @@ class YahtzeeApi(remote.Service):
         if game.game_over:
             raise endpoints.NotFoundException('Game already over')
 
-        if game.roll_count == 3:
-            raise endpoints.ConflictException('Cannot roll more than 3 times in a single turn.  Please score latest roll.')
+        if game.has_unscored_roll:
+            raise endpoints.ConflictException('Cannot roll again until current roll has been scored.  Please score current roll.')
         
+        game.has_unscored_roll = True
+        game.put()
+
         user = User.query(User.name == request.user_name).get()
         roll = Roll.new_roll(user.key, game.key)
 
@@ -135,7 +138,7 @@ class YahtzeeApi(remote.Service):
             raise endpoints.NotFoundException('Roll not found')
 
         category_type = request.category_type
-        return roll.calculate_score(game, category_type)
+        return roll.calculate_score(category_type)
 
 # registers API
 api = endpoints.api_server([YahtzeeApi])         

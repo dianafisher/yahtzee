@@ -18,12 +18,14 @@ class Game(ndb.Model):
     game_over = ndb.BooleanProperty(required=True, default=False)
     user = ndb.KeyProperty(required=True, kind='User')
     history = ndb.PickleProperty(required=True)    
+    has_unscored_roll = ndb.BooleanProperty(required=True)
 
     @classmethod
     def new_game(cls, user):
         """Creates and returns a new game"""
         game = Game(user=user)
-        game.history = []    
+        game.history = []
+        game.has_unscored_roll = False    
         game.put()
         return game
 
@@ -118,7 +120,7 @@ class Roll(ndb.Model):
     user = ndb.KeyProperty(required=True, kind='User')
     game = ndb.KeyProperty(required=True, kind='Game')
     dice = ndb.PickleProperty(required=True)
-    count = ndb.IntegerProperty(required=True, default=0)
+    count = ndb.IntegerProperty(required=True, default=0)    
 
     @classmethod
     def new_roll(cls, user, game):
@@ -152,11 +154,7 @@ class Roll(ndb.Model):
     def to_form(self):
         return RollResultForm(urlsafe_key=self.key.urlsafe(),
                             user_name=self.user.get().name,
-                            dice1=self.dice[0],
-                            dice2=self.dice[1],
-                            dice3=self.dice[2],
-                            dice4=self.dice[3],
-                            dice5=self.dice[4],
+                            dice=self.dice,                            
                             count=self.count
                             )
     
@@ -233,7 +231,11 @@ class Roll(ndb.Model):
                 score = 50
         elif category_type is CategoryType.CHANCE:
             # Sum of all five dice.
-            score = sum(self.dice)       
+            score = sum(self.dice)                   
+
+        game = self.game.get()
+        game.has_unscored_roll = False
+        game.put()
 
         return ScoreRollResultForm(score=score)
 
@@ -268,7 +270,7 @@ class GameForm(messages.Message):
     game_over = messages.BooleanField(2, required=True)
     message = messages.StringField(3, required=True)
     user_name = messages.StringField(4, required=True)
-
+    has_unscored_roll = messages.BooleanField(5, required=True)
 
 class NewGameForm(messages.Message):
     """Used to create a new game"""
@@ -303,13 +305,9 @@ class RollDiceForm(messages.Message):
 
 class RollResultForm(messages.Message):
     urlsafe_key = messages.StringField(1, required=True)    
-    user_name = messages.StringField(2, required=True)    
-    dice1 = messages.IntegerField(3, required=True)
-    dice2 = messages.IntegerField(4, required=True)
-    dice3 = messages.IntegerField(5, required=True)
-    dice4 = messages.IntegerField(6, required=True)
-    dice5 = messages.IntegerField(7, required=True)
-    count = messages.IntegerField(8, required=True)
+    user_name = messages.StringField(2, required=True)
+    dice = messages.IntegerField(3, repeated=True)        
+    count = messages.IntegerField(4, required=True)
 
 class RerollDiceForm(messages.Message):
     """Used to reroll the dice but keep dice listed in keepers"""
