@@ -16,7 +16,8 @@ from google.appengine.api import taskqueue
 from google.appengine.ext import ndb
 
 from models import User, Game, Score, ScoreCard, Roll
-from models import StringMessage, NewGameForm, GameForm, RollDiceForm, RollResultForm
+from models import StringMessage, NewGameForm, GameForm
+from models import RollDiceForm, RollResultForm, ScoreRollForm, ScoreRollResultForm, RerollDiceForm
 
 from utils import get_by_urlsafe
 
@@ -30,6 +31,14 @@ NEW_GAME_REQUEST = endpoints.ResourceContainer(NewGameForm)
 ROLL_DICE_REQUEST = endpoints.ResourceContainer(
     RollDiceForm,
     urlsafe_game_key=messages.StringField(1),)
+
+SCORE_ROLL_REQUEST = endpoints.ResourceContainer(
+    ScoreRollForm,    
+    urlsafe_roll_key=messages.StringField(1),)
+
+REROLL_DICE_REQUEST = endpoints.ResourceContainer(
+    RerollDiceForm,
+    urlsafe_roll_key=messages.StringField(1),)
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -78,7 +87,7 @@ class YahtzeeApi(remote.Service):
 # Roll Dice
     @endpoints.method(request_message=ROLL_DICE_REQUEST,
                       response_message=RollResultForm,
-                      path='game/{urlsafe_game_key}',
+                      path='game/{urlsafe_game_key}/roll',
                       name='roll_dice',
                       http_method='PUT')
     def roll_dice(self, request):
@@ -89,10 +98,44 @@ class YahtzeeApi(remote.Service):
         if game.game_over:
             raise endpoints.NotFoundException('Game already over')
 
+        if game.roll_count == 3:
+            raise endpoints.ConflictException('Cannot roll more than 3 times in a single turn.  Please score latest roll.')
+        
         user = User.query(User.name == request.user_name).get()
         roll = Roll.new_roll(user.key, game.key)
 
         return roll.to_form()
+
+    @endpoints.method(request_message=REROLL_DICE_REQUEST,
+                      response_message=RollResultForm,
+                      path='reroll/{urlsafe_roll_key}',
+                      name='reroll_dice',
+                      http_method='PUT')
+    def reroll_dice(self, request):
+        """Method to roll dice again after first roll"""
+                
+        roll = get_by_urlsafe(request.urlsafe_roll_key, Roll)
+        if not roll:
+            raise endpoints.NotFoundException('Roll not found')
+        if roll.count == 3:
+            raise endpoints.ConflictException('Cannot roll more than 3 times in a single turn.  Please score roll instead.')
+
+        return roll.reroll(request.keepers)
+
+
+    @endpoints.method(request_message=SCORE_ROLL_REQUEST,
+                      response_message=ScoreRollResultForm,
+                      path='score/{urlsafe_roll_key}',
+                      name='score_roll',
+                      http_method='PUT')
+    def score_roll(self, request):
+        """Score roll"""        
+        roll = get_by_urlsafe(request.urlsafe_roll_key, Roll)
+        if not roll:
+            raise endpoints.NotFoundException('Roll not found')
+
+        category_type = request.category_type
+        return roll.calculate_score(game, category_type)
 
 # registers API
 api = endpoints.api_server([YahtzeeApi])         
