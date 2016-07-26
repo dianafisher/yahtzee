@@ -34,7 +34,8 @@ class Game(ndb.Model):
         form = GameForm(urlsafe_key=self.key.urlsafe(),
                         user_name=self.user.get().name,
                         message=message,
-                        game_over=self.game_over)
+                        game_over=self.game_over,
+                        has_unscored_roll=self.has_unscored_roll)
         return form    
 
     def end_game(self, won=False):
