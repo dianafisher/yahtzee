@@ -31,5 +31,14 @@ class ScoreCard(ndb.Model):
         score_card.put()
         return score_card
 
+    def to_form(self):
+        return ScoreCardForm(            
+            scores=str(self.category_scores))
+
+class ScoreCardRequestForm(messages.Message):
+    """Used to request the user's scorecard"""
+    user_name = messages.StringField(1, required=True)    
+
 class ScoreCardForm(messages.Message):
-    score = messages.IntegerField(1, required=True)
+    """Used to return the user's scorecard"""    
+    scores = messages.StringField(2, required=True)    
