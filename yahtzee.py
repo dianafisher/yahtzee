@@ -15,9 +15,11 @@ from google.appengine.api import taskqueue
 
 from google.appengine.ext import ndb
 
-from models import User, Game, Score, ScoreCard, Roll
+from models import User, Game, Score, Roll
 from models import StringMessage, NewGameForm, GameForm
 from models import RollDiceForm, RollResultForm, ScoreRollForm, ScoreRollResultForm, RerollDiceForm
+
+from scorecard import ScoreCard, ScoreCardForm
 
 from utils import get_by_urlsafe
 
@@ -39,6 +41,9 @@ SCORE_ROLL_REQUEST = endpoints.ResourceContainer(
 REROLL_DICE_REQUEST = endpoints.ResourceContainer(
     RerollDiceForm,
     urlsafe_roll_key=messages.StringField(1),)
+
+SCORECARD_REQUEST = endpoints.ResourceContainer(
+  urlsafe_game_key=messages.StringField(1),)
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -139,6 +144,16 @@ class YahtzeeApi(remote.Service):
 
         category_type = request.category_type
         return roll.calculate_score(category_type)
+
+# Score Card
+    @endpoints.method(request_message=SCORECARD_REQUEST,
+                      response_message=ScoreCardForm,
+                      path='game/{urlsafe_game_key}/scorecard',
+                      name='score_card',
+                      http_method='GET')
+    def score_card(self, request):
+      """Returns the user's scorecard for the game"""
+
 
 # registers API
 api = endpoints.api_server([YahtzeeApi])         
