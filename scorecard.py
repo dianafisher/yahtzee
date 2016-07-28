@@ -30,7 +30,7 @@ class ScoreCard(ndb.Model):
         score_card.category_scores = scores
         score_card.put()
         return score_card
-
+    
     def to_form(self):
         return ScoreCardForm(            
             scores=str(self.category_scores))

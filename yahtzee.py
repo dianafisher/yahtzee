@@ -145,14 +145,15 @@ class YahtzeeApi(remote.Service):
             raise endpoints.NotFoundException('Roll not found')
 
         category_type = request.category_type
-        print 'roll', roll
-        user = roll.user.get()
-        print 'user', user
-        game = roll.game.get()
-        print 'game', game
-        # Get the user's scorecard for this game.
-        scorecard = ScoreCard.query(ndb.AND(ScoreCard.user == user.key, ScoreCard.game == game.key )).get()
-        print 'scorecard', scorecard
+        # print 'roll', roll
+        # user = roll.user.get()
+        # print 'user', user
+        # game = roll.game.get()
+        # print 'game', game
+        # # Get the user's scorecard for this game.
+        # scorecard = ScoreCard.query(ndb.AND(ScoreCard.user == user.key, ScoreCard.game == game.key )).get()
+        # print 'scorecard', scorecard
+        
 
         return roll.calculate_score(category_type)
 
