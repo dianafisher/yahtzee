@@ -134,7 +134,7 @@ class YahtzeeApi(remote.Service):
 
 
     @endpoints.method(request_message=SCORE_ROLL_REQUEST,
-                      response_message=ScoreRollResultForm,
+                      response_message=ScoreCardForm,
                       path='roll/{urlsafe_roll_key}/score',
                       name='score_roll',
                       http_method='PUT')

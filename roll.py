@@ -176,8 +176,8 @@ class Roll(ndb.Model):
         scorecard.category_scores[category] = score
         print 'updated scorecard', scorecard
         scorecard.put()
-
-        return ScoreRollResultForm(score=score)
+        return scorecard.to_form()
+        # return ScoreRollResultForm(score=score)
 
     def totalOf(self, value):
         score = 0
