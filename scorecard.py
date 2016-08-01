@@ -30,10 +30,14 @@ class ScoreCard(ndb.Model):
         score_card.category_scores = scores
         score_card.put()
         return score_card
-    
+
     def to_form(self):
         return ScoreCardForm(            
-            scores=str(self.category_scores))
+            scores=str(self.category_scores),
+            bonus_points = self.bonus_points,
+            is_full = self.is_full
+        )
+            
 
 class ScoreCardRequestForm(messages.Message):
     """Used to request the user's scorecard"""
@@ -41,4 +45,6 @@ class ScoreCardRequestForm(messages.Message):
 
 class ScoreCardForm(messages.Message):
     """Used to return the user's scorecard"""    
-    scores = messages.StringField(2, required=True)    
+    bonus_points = messages.IntegerField(1, required=True)
+    scores = messages.StringField(2, required=True)
+    is_full = messages.BooleanField(3, required=True)    

@@ -118,7 +118,7 @@ class YahtzeeApi(remote.Service):
 
     @endpoints.method(request_message=REROLL_DICE_REQUEST,
                       response_message=RollResultForm,
-                      path='reroll/{urlsafe_roll_key}',
+                      path='roll/{urlsafe_roll_key}/retry',
                       name='reroll_dice',
                       http_method='PUT')
     def reroll_dice(self, request):
@@ -153,7 +153,7 @@ class YahtzeeApi(remote.Service):
         # # Get the user's scorecard for this game.
         # scorecard = ScoreCard.query(ndb.AND(ScoreCard.user == user.key, ScoreCard.game == game.key )).get()
         # print 'scorecard', scorecard
-        
+
 
         return roll.calculate_score(category_type)
 

@@ -26,7 +26,8 @@ class Roll(ndb.Model):
     user = ndb.KeyProperty(required=True, kind='User')
     game = ndb.KeyProperty(required=True, kind='Game')
     dice = ndb.PickleProperty(required=True)
-    count = ndb.IntegerProperty(required=True, default=0)    
+    count = ndb.IntegerProperty(required=True, default=0)
+    isScored = ndb.BooleanProperty(required=True, default=False)    
 
     @classmethod
     def new_roll(cls, user, game):
@@ -47,11 +48,13 @@ class Roll(ndb.Model):
     def reroll(self, keepers):
         """Rerolls the dice but keeps dice listed in keepers"""
         print 'keepers', keepers
-        self.dice = []
+        print 'current dice', self.dice
+        
         for i in range(5):
-            value = random.choice(range(1, 7))
-            self.dice.append(value)
-            print value
+            if keepers[i] == 0:
+                value = random.choice(range(1, 7))
+                self.dice[i] = value
+                print value
 
         self.count += 1
         self.put()
@@ -61,7 +64,8 @@ class Roll(ndb.Model):
         return RollResultForm(urlsafe_key=self.key.urlsafe(),
                             user_name=self.user.get().name,
                             dice=self.dice,                            
-                            count=self.count
+                            count=self.count,
+                            isScored=self.isScored
                             )
     
     def calculate_score(self, category_type):
@@ -173,11 +177,13 @@ class Roll(ndb.Model):
         game.has_unscored_roll = False
         game.put()
 
-        scorecard.category_scores[category] = score
-        print 'updated scorecard', scorecard
+        scorecard.category_scores[category] = score        
         scorecard.put()
-        return scorecard.to_form()
-        # return ScoreRollResultForm(score=score)
+
+        self.isScored = True
+        self.put()
+
+        return scorecard.to_form()        
 
     def totalOf(self, value):
         score = 0
@@ -195,6 +201,7 @@ class RollResultForm(messages.Message):
     user_name = messages.StringField(2, required=True)
     dice = messages.IntegerField(3, repeated=True)        
     count = messages.IntegerField(4, required=True)
+    isScored = messages.BooleanField(5, required=True)
 
 class RerollDiceForm(messages.Message):
     """Used to reroll the dice but keep dice listed in keepers"""
