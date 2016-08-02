@@ -154,6 +154,7 @@ class YahtzeeApi(remote.Service):
         # scorecard = ScoreCard.query(ndb.AND(ScoreCard.user == user.key, ScoreCard.game == game.key )).get()
         # print 'scorecard', scorecard
 
+        print 'current score for category:', roll.score_for_category(category_type)
 
         return roll.calculate_score(category_type)
 
