@@ -16,11 +16,11 @@ from google.appengine.api import taskqueue
 from google.appengine.ext import ndb
 
 from models import User, Game, Score
-from models import StringMessage, NewGameForm, GameForm
+from models import StringMessage, NewGameForm, GameForm, UserForm
 
 from roll import Roll, RollDiceForm, RollResultForm, ScoreRollForm, ScoreRollResultForm, RerollDiceForm
 
-from scorecard import ScoreCard, ScoreCardRequestForm, ScoreCardForm
+from scorecard import CategoryType, ScoreCard, ScoreCardRequestForm, ScoreCardForm
 
 from utils import get_by_urlsafe
 
@@ -60,7 +60,7 @@ class YahtzeeApi(remote.Service):
 
 # Users
     @endpoints.method(request_message=USER_REQUEST,
-                      response_message=StringMessage,
+                      response_message=UserForm,
                       path='user',
                       name='create_user',
                       http_method='POST')
@@ -71,8 +71,9 @@ class YahtzeeApi(remote.Service):
                     'A User with that name already exists!')
         user = User(name=request.user_name, email=request.email)
         user.put()
-        return StringMessage(message='User {} created!'.format(
-                request.user_name))
+        # return StringMessage(message='User {} created!'.format(
+        #         request.user_name))
+        return user.to_form()
 
 # Game
     @endpoints.method(request_message=NEW_GAME_REQUEST,
@@ -82,6 +83,7 @@ class YahtzeeApi(remote.Service):
                       http_method='POST')
     def new_game(self, request):
         """Creates new game"""
+        print 'new game requested for user ', request.user_name
         user = User.query(User.name == request.user_name).get()
         if not user:
             raise endpoints.NotFoundException(
@@ -154,7 +156,13 @@ class YahtzeeApi(remote.Service):
         # scorecard = ScoreCard.query(ndb.AND(ScoreCard.user == user.key, ScoreCard.game == game.key )).get()
         # print 'scorecard', scorecard
 
-        print 'current score for category:', roll.score_for_category(category_type)
+        current_score = roll.score_for_category(category_type)
+        # print 'current_score:', current_score
+
+        if current_score > -1:
+          message = ('{} category already contains a score.  Please select a different score category.').format(str(category_type))
+          # print message
+          raise endpoints.ConflictException(message)
 
         return roll.calculate_score(category_type)
 

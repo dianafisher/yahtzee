@@ -13,6 +13,13 @@ class User(ndb.Model):
     name = ndb.StringProperty(required=True)
     email = ndb.StringProperty()
 
+    def to_form(self):
+        """Returns a UserForm representation of the User"""
+        form = UserForm(urlsafe_key=self.key.urlsafe(),
+                        user_name=self.name,
+                        email=self.email)
+        return form
+
 class Game(ndb.Model):
     """ Game object """
     game_over = ndb.BooleanProperty(required=True, default=False)
@@ -87,6 +94,12 @@ class Score(ndb.Model):
 #         self.put()
 
 # Forms/Messages
+
+class UserForm(messages.Message):
+    """UserForm for outbound user information"""    
+    urlsafe_key = messages.StringField(1, required=True)
+    user_name = messages.StringField(2, required=True)
+    email = messages.StringField(3, required=True)
 
 class GameForm(messages.Message):
     """GameForm for outbound game state information"""
