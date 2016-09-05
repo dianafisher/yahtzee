@@ -60,12 +60,13 @@ class Roll(ndb.Model):
         self.put()
         return self.to_form()
 
-    def score_for_category(self, category_type):
+    def current_score_for_category(self, category_type):
         game = self.game.get()
         user = self.user.get()
-        
+                        
         # Get the user's score card for this game.
         scorecard = ScoreCard.query(ndb.AND(ScoreCard.user == user.key, ScoreCard.game == game.key )).get()        
+        print 'scorecard: ', scorecard        
         return scorecard.category_scores[str(category_type)]
     
 
@@ -175,9 +176,12 @@ class Roll(ndb.Model):
 
         # scorecard.category_scores[str(category_type)] = score        
         # scorecard.put()
-
+        
+        print 'scorecard: ', scorecard
+        
         scorecard.calculate_score_for_category(self.dice, category_type)
-
+        
+        print 'scorecard after scoring: ', scorecard
         self.isScored = True
         self.put()
 

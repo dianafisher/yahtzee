@@ -163,7 +163,7 @@ class YahtzeeApi(remote.Service):
         # scorecard = ScoreCard.query(ndb.AND(ScoreCard.user == user.key, ScoreCard.game == game.key )).get()
         # print 'scorecard', scorecard
 
-        current_score = roll.score_for_category(category_type)
+        current_score = roll.current_score_for_category(category_type)
         # print 'current_score:', current_score
 
         if current_score > -1:

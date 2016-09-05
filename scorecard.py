@@ -21,6 +21,7 @@ class ScoreCard(ndb.Model):
     """ScoreCard object"""
     user = ndb.KeyProperty(required=True, kind='User')
     game = ndb.KeyProperty(required=True, kind='Game')
+    upper_section_total = ndb.IntegerProperty(default=0)
     bonus_points = ndb.IntegerProperty(default=0)
     is_full = ndb.BooleanProperty(required=True, default=False)
     category_scores = ndb.PickleProperty(required=True)
@@ -47,8 +48,7 @@ class ScoreCard(ndb.Model):
         score_card.put()
         return score_card
 
-    @classmethod
-    def calculate_score_for_category(cls, dice, category):
+    def calculate_score_for_category(self, dice, category):
         # Maintain a frequency table of dice values
         frequencies = {}
         for d in dice:
@@ -62,27 +62,27 @@ class ScoreCard(ndb.Model):
         score = 0
         if (category is CategoryType.ACES):
             # Total of ones only
-            score = self.totalOf(1)            
+            score = self.totalOf(1, dice)            
             
         elif (category is CategoryType.TWOS):
             # Total of twos only
-            score = self.totalOf(2)
+            score = self.totalOf(2, dice)
 
         elif (category is CategoryType.THREES):
             # Total of threes only
-            score = self.totalOf(3)            
+            score = self.totalOf(3, dice)            
 
         elif (category is CategoryType.FOURS):
             # Total of fours only
-            score = self.totalOf(4)            
+            score = self.totalOf(4, dice)            
 
         elif (category is CategoryType.FIVES):
             # Total of fives only
-            score = self.totalOf(5)            
+            score = self.totalOf(5, dice)            
 
         elif (category is CategoryType.SIXES):
             # Total of sixes only
-            score = self.totalOf(6)            
+            score = self.totalOf(6, dice)            
 
         elif (category is CategoryType.THREE_OF_A_KIND):            
             # If there are three of a kind, the score is equal to the sum of all five dice.
@@ -134,16 +134,16 @@ class ScoreCard(ndb.Model):
             # Sum of all five dice.
             score = sum(dice)                   
 
-        self.category_scores[str(category_type)] = score        
+        self.category_scores[str(category)] = score        
 
         """ If a player scores a total of 63 or more points in the upper section boxes, a bonus of 35 is added to the upper section score. """
         if self.upper_section_total == 0:
-            upper_section_total = self.scores['ACES'] + self.scores['TWOS'] + self.scores['THREES'] + self.scores['FOURS'] + self.scores['FIVES'] + self.scores['SIXES']
-            if upper_section_total >= 63:
+            self.upper_section_total = self.category_scores['ACES'] + self.category_scores['TWOS'] + self.category_scores['THREES'] + self.category_scores['FOURS'] + self.category_scores['FIVES'] + self.category_scores['SIXES']
+            if self.upper_section_total >= 63:
                 self.bonus_points = 35
 
         # Save the updated scorecard values.
-        scorecard.put()
+        self.put()
 
     def totalOf(self, value, dice):
         score = 0
@@ -154,8 +154,9 @@ class ScoreCard(ndb.Model):
 
     def to_form(self):
         return ScoreCardForm(            
-            scores=str(self.category_scores),
+            upper_section_total=self.upper_section_total,
             bonus_points = self.bonus_points,
+            category_scores=str(self.category_scores),            
             is_full = self.is_full
         )
             
@@ -166,6 +167,8 @@ class ScoreCardRequestForm(messages.Message):
 
 class ScoreCardForm(messages.Message):
     """Used to return the user's scorecard"""    
-    bonus_points = messages.IntegerField(1, required=True)
-    scores = messages.StringField(2, required=True)
-    is_full = messages.BooleanField(3, required=True)    
+    upper_section_total = messages.IntegerField(1, required=True)
+    bonus_points = messages.IntegerField(2, required=True)
+    category_scores = messages.StringField(3, required=True)
+    is_full = messages.BooleanField(4, required=True)    
+
