@@ -16,7 +16,7 @@ from google.appengine.api import taskqueue
 from google.appengine.ext import ndb
 
 from models import User, Game, Score
-from models import StringMessage, NewGameForm, GameForm, UserForm
+from models import StringMessage, NewGameForm, GameForm, UserForm, UserForms
 
 from roll import Roll, RollDiceForm, RollResultForm, ScoreRollForm, ScoreRollResultForm, RerollDiceForm
 
@@ -74,6 +74,13 @@ class YahtzeeApi(remote.Service):
         # return StringMessage(message='User {} created!'.format(
         #         request.user_name))
         return user.to_form()
+
+    @endpoints.method(response_message=UserForms,
+                      path='user/list',
+                      name='get_users',
+                      http_method='GET')
+    def get_users(self, request):      
+      return UserForms(users=[user.to_form() for user in User.query()])
 
 # Game
     @endpoints.method(request_message=NEW_GAME_REQUEST,

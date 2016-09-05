@@ -101,6 +101,10 @@ class UserForm(messages.Message):
     user_name = messages.StringField(2, required=True)
     email = messages.StringField(3, required=True)
 
+class UserForms(messages.Message):
+    """Used to get the list of all users"""
+    users = messages.MessageField(UserForm, 1, repeated=True)
+
 class GameForm(messages.Message):
     """GameForm for outbound game state information"""
     urlsafe_key = messages.StringField(1, required=True)    
