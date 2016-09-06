@@ -1,12 +1,13 @@
+import random
+from datetime import date
+from protorpc import messages
+from google.appengine.ext import ndb
+
 """
 models.py - This file contains the class definitions for the Datastore
 entities used by the game.
 """
 
-import random
-from datetime import date
-from protorpc import messages
-from google.appengine.ext import ndb
 
 class User(ndb.Model):
     """ User object """
@@ -20,11 +21,12 @@ class User(ndb.Model):
                         email=self.email)
         return form
 
+
 class Game(ndb.Model):
     """ Game object """
     game_over = ndb.BooleanProperty(required=True, default=False)
     user = ndb.KeyProperty(required=True, kind='User')
-    history = ndb.PickleProperty(required=True)    
+    history = ndb.PickleProperty(required=True)
     has_unscored_roll = ndb.BooleanProperty(required=True)
 
     @classmethod
@@ -32,27 +34,28 @@ class Game(ndb.Model):
         """Creates and returns a new game"""
         game = Game(user=user)
         game.history = []
-        game.has_unscored_roll = False    
+        game.has_unscored_roll = False
         game.put()
         return game
 
     def to_form(self):
         """Returns a GameForm representation of the Game"""
         form = GameForm(urlsafe_key=self.key.urlsafe(),
-                        user_name=self.user.get().name,                        
+                        user_name=self.user.get().name,
                         game_over=self.game_over,
                         has_unscored_roll=self.has_unscored_roll)
-        return form    
+        return form
 
     def end_game(self, won=False):
         """Ends the game - if won is True, the player won. - if won is False,
         the player lost."""
-        self.game_over = True        
+        self.game_over = True
         self.put()
         # # Add the game to the score 'board'
         # score = Score(user=self.user, date=date.today(), won=won,
-        #               guesses=self.attempts_allowed - self.attempts_remaining)
+        #           guesses=self.attempts_allowed - self.attempts_remaining)
         # score.put()
+
 
 class Score(ndb.Model):
     """Score object"""
@@ -65,59 +68,32 @@ class Score(ndb.Model):
         return ScoreForm(user_name=self.user.get().name, won=self.won,
                          date=str(self.date), guesses=self.guesses)
 
-# class Turn(ndb.Model):
-#     """Turn object - Each turn consits of up to three rolls."""
-#     user = ndb.KeyProperty(required=True, kind='User')
-#     game = ndb.KeyProperty(required=True, kind='Game')
-#     roll_count = ndb.IntegerProperty(required=True, default=0)
-#     dice = ndb.PickleProperty(required=True)
 
-#     @classmethod
-#     def new_turn(cls, user, game):
-#         """Creates a new turn"""
-#         turn = Turn(user=user, game=game)
-#         turn.dice = []
-#         turn.put()
-#         return turn
-
-#     def roll_dice(self, keepers):
-#         if self.roll_count == 3:
-#             raise ValueError('Cannot roll dice more than three times in one turn')
-
-#         for i in range(5):
-#             value = random.choice(range(1, 7))
-#             self.dice.append(value)
-#             self.roll_count += 1
-#             print value
-    
-#         self.put()
-
-# Forms/Messages
+# Forms
 
 class UserForm(messages.Message):
-    """UserForm for outbound user information"""    
+    """UserForm for outbound user information"""
     urlsafe_key = messages.StringField(1, required=True)
     user_name = messages.StringField(2, required=True)
     email = messages.StringField(3, required=True)
+
 
 class UserForms(messages.Message):
     """Form to return a list of all users"""
     users = messages.MessageField(UserForm, 1, repeated=True)
 
+
 class GameForm(messages.Message):
     """GameForm for outbound game state information"""
-    urlsafe_key = messages.StringField(1, required=True)    
-    game_over = messages.BooleanField(2, required=True)    
+    urlsafe_key = messages.StringField(1, required=True)
+    game_over = messages.BooleanField(2, required=True)
     user_name = messages.StringField(3, required=True)
     has_unscored_roll = messages.BooleanField(4, required=True)
+
 
 class GameForms(messages.Message):
     """Form to return list of games"""
     games = messages.MessageField(GameForm, 1, repeated=True)
-
-# class NewGameForm(messages.Message):
-#     """Used to create a new game"""
-#     user_name = messages.StringField(1, required=True)    
 
 
 class MakeMoveForm(messages.Message):
@@ -140,5 +116,4 @@ class ScoreForms(messages.Message):
 
 class StringMessage(messages.Message):
     """StringMessage-- outbound (single) string message"""
-    message = messages.StringField(1, required=True)    
-
+    message = messages.StringField(1, required=True)
