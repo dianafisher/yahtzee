@@ -16,7 +16,7 @@ from google.appengine.api import taskqueue
 from google.appengine.ext import ndb
 
 from models import User, Game, Score
-from models import StringMessage, NewGameForm, GameForm, UserForm, UserForms
+from models import StringMessage, GameForm, GameForms, UserForm, UserForms
 
 from roll import Roll, RollDiceForm, RollResultForm, ScoreRollForm, ScoreRollResultForm, RerollDiceForm
 
@@ -29,7 +29,9 @@ from utils import get_by_urlsafe
 USER_REQUEST = endpoints.ResourceContainer(user_name=messages.StringField(1),
                                            email=messages.StringField(2))
 
-NEW_GAME_REQUEST = endpoints.ResourceContainer(NewGameForm)
+NEW_GAME_REQUEST = endpoints.ResourceContainer(user_name = messages.StringField(1, required=True))
+
+USER_GAMES_REQUEST = endpoints.ResourceContainer(user_name=messages.StringField(1))
 
 ROLL_DICE_REQUEST = endpoints.ResourceContainer(
     RollDiceForm,
@@ -59,6 +61,7 @@ class YahtzeeApi(remote.Service):
     """Yahtzee API v0.1"""
 
 # Users
+    # Create user
     @endpoints.method(request_message=USER_REQUEST,
                       response_message=UserForm,
                       path='user',
@@ -75,14 +78,17 @@ class YahtzeeApi(remote.Service):
         #         request.user_name))
         return user.to_form()
 
+    # Get users
     @endpoints.method(response_message=UserForms,
                       path='user/list',
                       name='get_users',
                       http_method='GET')
-    def get_users(self, request):      
+    def get_users(self, request):
+      """Returns list of all users."""      
       return UserForms(users=[user.to_form() for user in User.query()])
 
 # Game
+    # Create new game for user
     @endpoints.method(request_message=NEW_GAME_REQUEST,
                       response_message=GameForm,
                       path='game',
@@ -98,7 +104,23 @@ class YahtzeeApi(remote.Service):
 
         game = Game.new_game(user.key)
         score_card = ScoreCard.new_scorecard(user.key, game.key)
-        return game.to_form('Welcome to Yahtzee!')
+        return game.to_form()
+
+    # Get user active games
+    @endpoints.method(request_message=USER_GAMES_REQUEST,
+                      response_message=GameForms,
+                      path='user/games',
+                      name='get_user_games',
+                      http_method='POST')
+    def get_user_games(self, request):
+      # Query for a user with this user name.
+      user = User.query(User.name == request.user_name).get()
+      if not user:
+          message = ('User {} not found!').format(request.user_name)
+          raise endpoints.NotFoundException(message)
+      # Query for all active games for this user.
+      games = Game.query(Game.user == user.key).filter(Game.game_over == False)
+      return GameForms(games=[game.to_form() for game in games])
 
 # Roll Dice
     @endpoints.method(request_message=ROLL_DICE_REQUEST,

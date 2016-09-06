@@ -36,11 +36,10 @@ class Game(ndb.Model):
         game.put()
         return game
 
-    def to_form(self, message):
+    def to_form(self):
         """Returns a GameForm representation of the Game"""
         form = GameForm(urlsafe_key=self.key.urlsafe(),
-                        user_name=self.user.get().name,
-                        message=message,
+                        user_name=self.user.get().name,                        
                         game_over=self.game_over,
                         has_unscored_roll=self.has_unscored_roll)
         return form    
@@ -102,20 +101,23 @@ class UserForm(messages.Message):
     email = messages.StringField(3, required=True)
 
 class UserForms(messages.Message):
-    """Used to get the list of all users"""
+    """Form to return a list of all users"""
     users = messages.MessageField(UserForm, 1, repeated=True)
 
 class GameForm(messages.Message):
     """GameForm for outbound game state information"""
     urlsafe_key = messages.StringField(1, required=True)    
-    game_over = messages.BooleanField(2, required=True)
-    message = messages.StringField(3, required=True)
-    user_name = messages.StringField(4, required=True)
-    has_unscored_roll = messages.BooleanField(5, required=True)
+    game_over = messages.BooleanField(2, required=True)    
+    user_name = messages.StringField(3, required=True)
+    has_unscored_roll = messages.BooleanField(4, required=True)
 
-class NewGameForm(messages.Message):
-    """Used to create a new game"""
-    user_name = messages.StringField(1, required=True)    
+class GameForms(messages.Message):
+    """Form to return list of games"""
+    games = messages.MessageField(GameForm, 1, repeated=True)
+
+# class NewGameForm(messages.Message):
+#     """Used to create a new game"""
+#     user_name = messages.StringField(1, required=True)    
 
 
 class MakeMoveForm(messages.Message):
