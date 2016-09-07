@@ -137,16 +137,15 @@ class ScoreCard(ndb.Model):
         self.category_scores[str(category)] = score        
 
         """ If a player scores a total of 63 or more points in the upper section boxes, a bonus of 35 is added to the upper section score. """
-        if self.upper_section_total == 0:
-            self.upper_section_total = self.totalOfUpperSection()
-            if self.upper_section_total >= 63:
-                self.bonus_points = 35
-
+        self.calculateUpperSectionBonus()
+        
         # Save the updated scorecard values.
         self.put()
 
-    def totalOfUpperSection(self):
-        """Calculates total of scores in upper section.  Ignores values less than zero."""
+    def calculateUpperSectionBonus(self):
+        """Calculates total of scores in upper section.  
+        Ignores values less than zero."""
+        
         total = 0
         if self.category_scores['ACES'] != -1:
             total += self.category_scores['ACES']
@@ -161,7 +160,8 @@ class ScoreCard(ndb.Model):
         if self.category_scores['SIXES'] != -1:
             total += self.category_scores['SIXES']
         
-        return total        
+        if total >= 63:
+            self.bonus_points = 35  
 
     def totalOf(self, value, dice):
         score = 0

@@ -1,8 +1,9 @@
-"""utils.py - File for collecting general utility functions."""
-
 import logging
 from google.appengine.ext import ndb
 import endpoints
+
+"""utils.py - File for collecting general utility functions."""
+
 
 def get_by_urlsafe(urlsafe, model):
     """Returns an ndb.Model entity that the urlsafe key points to. Checks

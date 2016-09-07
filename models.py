@@ -13,6 +13,7 @@ class User(ndb.Model):
     """ User object """
     name = ndb.StringProperty(required=True)
     email = ndb.StringProperty()
+    high_score = ndb.IntegerProperty(default=0)
 
     def to_form(self):
         """Returns a UserForm representation of the User"""

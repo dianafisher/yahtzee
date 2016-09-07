@@ -27,11 +27,15 @@ __author__ = 'diana.fisher@gmail.com (Diana Fisher)'
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-USER_REQUEST = endpoints.ResourceContainer(user_name=messages.StringField(1),
-                                           email=messages.StringField(2))
+USER_REQUEST = endpoints.ResourceContainer(
+    user_name=messages.StringField(1),
+    email=messages.StringField(2))
 
 NEW_GAME_REQUEST = endpoints.ResourceContainer(
     user_name=messages.StringField(1, required=True))
+
+GET_GAME_REQUEST = endpoints.ResourceContainer(
+    urlsafe_game_key=messages.StringField(1))
 
 USER_GAMES_REQUEST = endpoints.ResourceContainer(
     user_name=messages.StringField(1))
@@ -126,6 +130,22 @@ class YahtzeeApi(remote.Service):
         return GameForms(games=[game.to_form() for game in games])
 
     # Cancel game
+    @endpoints.method(request_message=GET_GAME_REQUEST,
+                      response_message=StringMessage,
+                      path='game/{urlsafe_game_key}',
+                      name='cancel_game',
+                      http_method='DELETE')
+    def cancel_game(self, request):
+        """Delete an active game"""
+        game = get_by_urlsafe(request.urlsafe_game_key, Game)
+        if game and not game.game_over:
+            game.key.delete()
+            return StringMessage(message='Game with key: {} deleted.'.
+                                 format(request.urlsafe_game_key))
+        elif game and game.game_over:
+            raise endpoints.BadRequestException('Game is already over!')
+        else:
+            raise endpoints.NotFoundException('Game not found!')
 
     # Roll Dice
     @endpoints.method(request_message=ROLL_DICE_REQUEST,
