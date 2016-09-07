@@ -142,7 +142,11 @@ class ScoreCard(ndb.Model):
         self.upper_section_total = self.calculateUpperSectionTotal()        
         if self.upper_section_total >= 63:
             self.bonus_points = 35  
-        
+                
+        """Check if the scorecard is now full"""
+        status = self.isFull()
+        print 'is full = ', status
+
         # Save the updated scorecard values.
         self.put()
 
@@ -165,6 +169,12 @@ class ScoreCard(ndb.Model):
             total += self.category_scores['SIXES']
         
         return total
+
+    def isFull(self):
+        for key in self.category_scores:
+            if self.category_scores[key] == -1:
+                return False
+        return True
 
     def totalOf(self, value, dice):
         score = 0

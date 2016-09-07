@@ -47,7 +47,8 @@ class Roll(ndb.Model):
         return roll
 
     def reroll(self, keepers):
-        """Rerolls the dice but keeps dice listed in keepers.  Keepers array contains 0 or 1 (replace, keep) for each die index."""
+        """Rerolls the dice but keeps dice listed in keepers.  
+        Keepers array contains 0 or 1 (replace, keep) for each die index."""
         print 'keepers', keepers
         print 'current dice', self.dice
 

@@ -9,8 +9,10 @@ from google.appengine.api import taskqueue
 
 from google.appengine.ext import ndb
 
-from models import User, Game, Score
-from models import StringMessage, GameForm, GameForms, UserForm, UserForms
+from models import User, Score
+from models import StringMessage, UserForm, UserForms
+
+from game import Game, GameForm, GameForms
 
 from roll import Roll, RollDiceForm, RollResultForm
 from roll import ScoreRollForm, ScoreRollResultForm, RerollDiceForm
