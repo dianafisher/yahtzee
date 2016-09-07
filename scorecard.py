@@ -130,19 +130,23 @@ class ScoreCard(ndb.Model):
             if 5 in frequencies.values():
                 score = 50
 
-        elif category_type is CategoryType.CHANCE:            
+        elif category is CategoryType.CHANCE:            
             # Sum of all five dice.
             score = sum(dice)                   
 
         self.category_scores[str(category)] = score        
 
-        """ If a player scores a total of 63 or more points in the upper section boxes, a bonus of 35 is added to the upper section score. """
-        self.calculateUpperSectionBonus()
+        """ If a player scores a total of 63 or more points in the 
+        upper section boxes, a bonus of 35 is added to the upper section score. """
+                
+        self.upper_section_total = self.calculateUpperSectionTotal()        
+        if self.upper_section_total >= 63:
+            self.bonus_points = 35  
         
         # Save the updated scorecard values.
         self.put()
 
-    def calculateUpperSectionBonus(self):
+    def calculateUpperSectionTotal(self):
         """Calculates total of scores in upper section.  
         Ignores values less than zero."""
         
@@ -160,8 +164,7 @@ class ScoreCard(ndb.Model):
         if self.category_scores['SIXES'] != -1:
             total += self.category_scores['SIXES']
         
-        if total >= 63:
-            self.bonus_points = 35  
+        return total
 
     def totalOf(self, value, dice):
         score = 0
