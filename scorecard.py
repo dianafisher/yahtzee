@@ -1,3 +1,4 @@
+import endpoints
 from protorpc import messages
 from google.appengine.ext import ndb
 
@@ -25,6 +26,8 @@ class ScoreCard(ndb.Model):
     bonus_points = ndb.IntegerProperty(default=0)
     is_full = ndb.BooleanProperty(required=True, default=False)
     category_scores = ndb.PickleProperty(required=True)
+    total_score = ndb.IntegerProperty(default=0)
+    yahzee_bonus_count = ndb.IntegerProperty(default=0)
 
     @classmethod
     def new_scorecard(cls, user, game):
@@ -126,10 +129,31 @@ class ScoreCard(ndb.Model):
                 score = 40
 
         elif category is CategoryType.YAHTZEE:            
-            # Five of a kind.  A Yahtzee is worth 50 points.
-            if 5 in frequencies.values():
-                score = 50
+            # Five of a kind.  A YAHTZEE is worth 50 points.            
+                        
+            # Check to make sure all dice are the same.
+            is_Yahztee = (5 in frequencies.values())
+                        
+            """If the user rolls YAHTZEE and has already filled in the 
+            YAHZTEE box with 50, they get a 100-point bonus.
+            If they have already filled in the YAHTZEE box with 0, 
+            they do not get a bonus."""
+            
+            # Has a score already been entered for the YAHTZEE category?
+            current_score = self.category_scores[str(category)]
+            if current_score == -1:
+                # No score has been entered yet, so score normally.
+                if is_Yahztee:
+                    score = 50
+                else:
+                    score = 0
+                
+            elif current_score == 50:
+                """A score of 50 has already been entered, 
+                so increase the YAHTZEE bonus conut."""
+                self.yahzee_bonus_count += 1
 
+            
         elif category is CategoryType.CHANCE:            
             # Sum of all five dice.
             score = sum(dice)                   
@@ -137,16 +161,19 @@ class ScoreCard(ndb.Model):
         self.category_scores[str(category)] = score        
 
         """ If a player scores a total of 63 or more points in the 
-        upper section boxes, a bonus of 35 is added to the upper section score. """
+        upper section, a bonus of 35 points is added to the upper section score. """
                 
-        self.upper_section_total = self.calculateUpperSectionTotal()        
+        self.upper_section_total = self.calculateUpperSectionTotal()  
+
         if self.upper_section_total >= 63:
             self.bonus_points = 35  
                 
-        """Check if the scorecard is now full"""
-        status = self.isFull()
-        print 'is full = ', status
+        """Check to see if the game is now over"""
+        self.is_full = self.check_is_full()
 
+        """Calculate the total score"""
+        self.total_score = self.calculate_total_score()
+        
         # Save the updated scorecard values.
         self.put()
 
@@ -170,11 +197,19 @@ class ScoreCard(ndb.Model):
         
         return total
 
-    def isFull(self):
-        for key in self.category_scores:
+    def check_is_full(self):        
+        for key in self.category_scores:            
             if self.category_scores[key] == -1:
                 return False
         return True
+
+    def calculate_total_score(self):
+        total = 0
+        for key in self.category_scores:
+                total += self.category_scores[key]
+        
+        total += self.bonus_points
+        return total
 
     def totalOf(self, value, dice):
         score = 0
@@ -202,4 +237,9 @@ class ScoreCardForm(messages.Message):
     bonus_points = messages.IntegerField(2, required=True)
     category_scores = messages.StringField(3, required=True)
     is_full = messages.BooleanField(4, required=True)    
+
+class ScoreRollForm(messages.Message):
+    category_type = messages.EnumField('CategoryType', 1)
+    using_joker_rules = messages.BooleanField(2)
+        
 

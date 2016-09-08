@@ -15,8 +15,8 @@ from models import StringMessage, UserForm, UserForms
 from game import Game, GameForm, GameForms
 
 from roll import Roll, RollDiceForm, RollResultForm
-from roll import ScoreRollForm, ScoreRollResultForm, RerollDiceForm
-from scorecard import CategoryType, ScoreCard
+from roll import ScoreRollResultForm, RerollDiceForm
+from scorecard import CategoryType, ScoreCard, ScoreRollForm
 from scorecard import ScoreCardRequestForm, ScoreCardForm
 
 from utils import get_by_urlsafe
@@ -171,9 +171,13 @@ class YahtzeeApi(remote.Service):
 
         user = User.query(User.name == request.user_name).get()
         roll = Roll.new_roll(user.key, game.key)
+        
+        # Add the roll to the game history.
+        game.history.append(roll.dice)
 
         return roll.to_form()
 
+    # Roll Dice again (in a single turn)
     @endpoints.method(request_message=REROLL_DICE_REQUEST,
                       response_message=RollResultForm,
                       path='roll/{urlsafe_roll_key}/retry',
@@ -191,6 +195,7 @@ class YahtzeeApi(remote.Service):
 
         return roll.reroll(request.keepers)
 
+    # Calculate the score for the specified roll
     @endpoints.method(request_message=SCORE_ROLL_REQUEST,
                       response_message=ScoreCardForm,
                       path='roll/{urlsafe_roll_key}/score',
@@ -203,25 +208,35 @@ class YahtzeeApi(remote.Service):
             raise endpoints.NotFoundException('Roll not found')
 
         category_type = request.category_type
-        # print 'roll', roll
-        # user = roll.user.get()
-        # print 'user', user
-        # game = roll.game.get()
-        # print 'game', game
-        # # Get the user's scorecard for this game.
-        # scorecard = ScoreCard.query(ndb.AND(ScoreCard.user == user.key, ScoreCard.game == game.key )).get()
-        # print 'scorecard', scorecard
+        print 'category_type:', category_type
 
-        current_score = roll.current_score_for_category(category_type)
-        # print 'current_score:', current_score
+        game = roll.game.get()
+        user = roll.user.get()
 
-        if current_score > -1:
+        # Get the user's score card for this game.
+        scorecard = ScoreCard.query(
+            ndb.AND(ScoreCard.user == user.key, ScoreCard.game == game.key)).get()
+
+        print 'scorecard: ', scorecard
+        current_score = scorecard.category_scores[str(category_type)]
+        # current_score = roll.current_score_for_category(category_type)
+        print 'current_score:', current_score
+        
+        """The YAHTZEE category is the only category which can be scored more than once. 
+           So check the category type and whether or not the category had already been scored.
+        """
+        if category_type is not 'YAHZTEE' and current_score > -1:
             message = ('{} category already contains a score.  Please select a different score category.').format(
-                str(category_type))
-            # print message
+                str(category_type))            
             raise endpoints.ConflictException(message)
 
-        return roll.calculate_score(category_type)
+        scorecard.calculate_score_for_category(roll.dice, category_type)
+
+        print 'scorecard after scoring: ', scorecard
+        roll.isScored = True
+        roll.put()
+
+        return scorecard.to_form()
 
 # Score Card
     @endpoints.method(request_message=SCORECARD_REQUEST,

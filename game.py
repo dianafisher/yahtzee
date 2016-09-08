@@ -6,7 +6,7 @@ class Game(ndb.Model):
     game_over = ndb.BooleanProperty(required=True, default=False)
     user = ndb.KeyProperty(required=True, kind='User')
     history = ndb.PickleProperty(required=True)
-    has_unscored_roll = ndb.BooleanProperty(required=True)
+    has_unscored_roll = ndb.BooleanProperty(required=True)    
 
     @classmethod
     def new_game(cls, user):
@@ -24,18 +24,8 @@ class Game(ndb.Model):
                         game_over=self.game_over,
                         has_unscored_roll=self.has_unscored_roll)
         return form
-
-    def end_game(self, won=False):
-        """Ends the game - if won is True, the player won. - if won is False,
-        the player lost."""
-        self.game_over = True
-        self.put()
-        # # Add the game to the score 'board'
-        # score = Score(user=self.user, date=date.today(), won=won,
-        #           guesses=self.attempts_allowed - self.attempts_remaining)
-        # score.put()
-
-
+    
+    
 class GameForm(messages.Message):
     """GameForm for outbound game state information"""
     urlsafe_key = messages.StringField(1, required=True)
