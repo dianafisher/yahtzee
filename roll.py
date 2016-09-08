@@ -41,6 +41,14 @@ class Roll(ndb.Model):
 
         self.count += 1
         self.put()
+
+        game = self.game.get()
+        # Create entry for history.
+        entry = (self.count, self.dice)
+        game.history.append(entry)
+        # Save the game history.
+        game.put()
+
         return self.to_form()
     
     def to_form(self):

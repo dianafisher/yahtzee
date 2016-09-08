@@ -170,8 +170,9 @@ class YahtzeeApi(remote.Service):
         roll = Roll.new_roll(user.key, game.key)
         
         # Add the roll to the game history.
-        print 'appending {} to game', roll.dice
-        game.history.append(roll.dice)
+        entry = (1, roll.dice)
+        print 'appending {} to game', entry
+        game.history.append(entry)
         print 'game', game
         game.has_unscored_roll = True
         game.put()
@@ -190,7 +191,7 @@ class YahtzeeApi(remote.Service):
         game = get_by_urlsafe(request.urlsafe_game_key, Game)        
         if not game:
             raise endpoints.NotFoundException('Game not found')
-        print 'game', game    
+        
         return GameHistoryMessage(history=str(game.history))
 
     # Roll Dice again (in a single turn)
@@ -246,12 +247,22 @@ class YahtzeeApi(remote.Service):
                 str(category_type))            
             raise endpoints.ConflictException(message)
 
-        scorecard.calculate_score_for_category(roll.dice, category_type)
+        score = scorecard.calculate_score_for_category(roll.dice, category_type)
+        
+        # Create a score entry for the game history.
+        entry = (str(category_type), score)
+        game.history.append(entry)
+        print 'game', game
+        # Save the changes made to game
+        game.put()
 
+        scorecard.category_scores[str(category_type)] = score  
         print 'scorecard after scoring: ', scorecard
         roll.isScored = True
         roll.put()
 
+        # # Save the updated scorecard values.
+        scorecard.put()
         return scorecard.to_form()
 
 # Score Card

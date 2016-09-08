@@ -156,26 +156,28 @@ class ScoreCard(ndb.Model):
             
         elif category is CategoryType.CHANCE:            
             # Sum of all five dice.
-            score = sum(dice)                   
+            score = sum(dice)     
 
-        self.category_scores[str(category)] = score        
+        return score              
 
-        """ If a player scores a total of 63 or more points in the 
-        upper section, a bonus of 35 points is added to the upper section score. """
+        # self.category_scores[str(category)] = score        
+
+        # """ If a player scores a total of 63 or more points in the 
+        # upper section, a bonus of 35 points is added to the upper section score. """
                 
-        self.upper_section_total = self.calculateUpperSectionTotal()  
+        # self.upper_section_total = self.calculateUpperSectionTotal()  
 
-        if self.upper_section_total >= 63:
-            self.bonus_points = 35  
+        # if self.upper_section_total >= 63:
+        #     self.bonus_points = 35  
                 
-        """Check to see if the game is now over"""
-        self.is_full = self.check_is_full()
+        # """Check to see if the game is now over"""
+        # self.is_full = self.check_is_full()
 
-        """Calculate the total score"""
-        self.total_score = self.calculate_total_score()
+        # """Calculate the total score"""
+        # self.total_score = self.calculate_total_score()
         
-        # Save the updated scorecard values.
-        self.put()
+        # # Save the updated scorecard values.
+        # self.put()
 
     def calculateUpperSectionTotal(self):
         """Calculates total of scores in upper section.  
@@ -241,5 +243,5 @@ class ScoreCardForm(messages.Message):
 class ScoreRollForm(messages.Message):
     category_type = messages.EnumField('CategoryType', 1)
     using_joker_rules = messages.BooleanField(2)
-        
+
 
