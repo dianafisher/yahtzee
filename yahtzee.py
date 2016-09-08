@@ -9,7 +9,7 @@ from google.appengine.api import taskqueue
 
 from google.appengine.ext import ndb
 
-from models import User, Score
+from models import User, Score, GameHistoryMessage
 from models import StringMessage, UserForm, UserForms
 
 from game import Game, GameForm, GameForms
@@ -165,17 +165,33 @@ class YahtzeeApi(remote.Service):
 
         # if game.has_unscored_roll:
         #     raise endpoints.ConflictException('Cannot roll again until current roll has been scored.  Please score current roll.')
-
-        game.has_unscored_roll = True
-        game.put()
-
+        
         user = User.query(User.name == request.user_name).get()
         roll = Roll.new_roll(user.key, game.key)
         
         # Add the roll to the game history.
+        print 'appending {} to game', roll.dice
         game.history.append(roll.dice)
+        print 'game', game
+        game.has_unscored_roll = True
+        game.put()
 
         return roll.to_form()
+
+    # Get Game History
+    @endpoints.method(request_message=GET_GAME_REQUEST,
+                      response_message=GameHistoryMessage,
+                      path='game/{urlsafe_game_key}/history',
+                      name='get_game_history',
+                      http_method='GET'
+                      )
+    def get_game_history(self, request):
+        """Return a Game's roll history"""
+        game = get_by_urlsafe(request.urlsafe_game_key, Game)        
+        if not game:
+            raise endpoints.NotFoundException('Game not found')
+        print 'game', game    
+        return GameHistoryMessage(history=str(game.history))
 
     # Roll Dice again (in a single turn)
     @endpoints.method(request_message=REROLL_DICE_REQUEST,
