@@ -9,8 +9,8 @@ from google.appengine.api import taskqueue
 
 from google.appengine.ext import ndb
 
-from models import User, Score, GameHistoryMessage
-from models import StringMessage, UserForm, UserForms
+from models import User, Score, GameHistoryForm, \
+    StringMessage, UserForm, UserForms, HighScoresForm
 
 from game import Game, GameForm, GameForms
 
@@ -28,6 +28,8 @@ yahtzee.py - Create and configure the game API.
 __author__ = 'diana.fisher@gmail.com (Diana Fisher)'
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+# Resource Containers
 
 USER_REQUEST = endpoints.ResourceContainer(
     user_name=messages.StringField(1),
@@ -57,6 +59,9 @@ REROLL_DICE_REQUEST = endpoints.ResourceContainer(
 SCORECARD_REQUEST = endpoints.ResourceContainer(
     ScoreCardRequestForm,
     urlsafe_game_key=messages.StringField(1),)
+
+HIGH_SCORES_REQUEST = endpoints.ResourceContainer(
+    number_of_results=messages.IntegerField(1))
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -93,7 +98,7 @@ class YahtzeeApi(remote.Service):
                       name='get_users',
                       http_method='GET')
     def get_users(self, request):
-        """Returns list of all users."""
+        """Returns the list of all users."""
         return UserForms(users=[user.to_form() for user in User.query()])
 
     # Create new game for user
@@ -121,6 +126,8 @@ class YahtzeeApi(remote.Service):
                       name='get_user_games',
                       http_method='POST')
     def get_user_games(self, request):
+        """Returns the active games for a user."""
+
         # Query for a user with this user name.
         user = User.query(User.name == request.user_name).get()
         if not user:
@@ -156,7 +163,7 @@ class YahtzeeApi(remote.Service):
                       name='roll_dice',
                       http_method='PUT')
     def roll_dice(self, request):
-        """Roll dice"""
+        """Roll dice.  This is the first roll of a turn."""
         game = get_by_urlsafe(request.urlsafe_game_key, Game)
         if not game:
             raise endpoints.NotFoundException('Game not found')
@@ -165,15 +172,13 @@ class YahtzeeApi(remote.Service):
 
         # if game.has_unscored_roll:
         #     raise endpoints.ConflictException('Cannot roll again until current roll has been scored.  Please score current roll.')
-        
+
         user = User.query(User.name == request.user_name).get()
         roll = Roll.new_roll(user.key, game.key)
-        
+
         # Add the roll to the game history.
         entry = (1, roll.dice)
-        print 'appending {} to game', entry
         game.history.append(entry)
-        print 'game', game
         game.has_unscored_roll = True
         game.put()
 
@@ -181,18 +186,18 @@ class YahtzeeApi(remote.Service):
 
     # Get Game History
     @endpoints.method(request_message=GET_GAME_REQUEST,
-                      response_message=GameHistoryMessage,
+                      response_message=GameHistoryForm,
                       path='game/{urlsafe_game_key}/history',
                       name='get_game_history',
                       http_method='GET'
                       )
     def get_game_history(self, request):
-        """Return a Game's roll history"""
-        game = get_by_urlsafe(request.urlsafe_game_key, Game)        
+        """Returns the roll and score history for a game."""
+        game = get_by_urlsafe(request.urlsafe_game_key, Game)
         if not game:
             raise endpoints.NotFoundException('Game not found')
-        
-        return GameHistoryMessage(history=str(game.history))
+
+        return GameHistoryForm(history=str(game.history))
 
     # Roll Dice again (in a single turn)
     @endpoints.method(request_message=REROLL_DICE_REQUEST,
@@ -201,7 +206,15 @@ class YahtzeeApi(remote.Service):
                       name='reroll_dice',
                       http_method='PUT')
     def reroll_dice(self, request):
-        """Method to roll dice again after first roll"""
+        """
+        Roll dice again after first roll of a turn.  
+        An array of integers indiciting the dice to 'keep' from the previous roll must be provided.
+        A value of '0' indicates the die at that index should be replaced.
+        A value of '1' indicates the die at that index should be kept.
+
+        Example A: [0,1,1,0,0] means the dice at index 1 and 2 should be kept, all others replaced.
+        Example B: [0,0,0,0,0] means all dice should be replaced.
+        """
 
         roll = get_by_urlsafe(request.urlsafe_roll_key, Roll)
         if not roll:
@@ -219,7 +232,10 @@ class YahtzeeApi(remote.Service):
                       name='score_roll',
                       http_method='PUT')
     def score_roll(self, request):
-        """Score roll"""
+        """
+        Calculates the score for the roll specified.
+        Required Params: url safe key for the Roll and the category to score the roll in.
+        """
         roll = get_by_urlsafe(request.urlsafe_roll_key, Roll)
         if not roll:
             raise endpoints.NotFoundException('Roll not found')
@@ -234,38 +250,62 @@ class YahtzeeApi(remote.Service):
         scorecard = ScoreCard.query(
             ndb.AND(ScoreCard.user == user.key, ScoreCard.game == game.key)).get()
 
-        print 'scorecard: ', scorecard
+        # print 'scorecard: ', scorecard
         current_score = scorecard.category_scores[str(category_type)]
         # current_score = roll.current_score_for_category(category_type)
-        print 'current_score:', current_score
-        
+        # print 'current_score:', current_score
+
         """The YAHTZEE category is the only category which can be scored more than once. 
            So check the category type and whether or not the category had already been scored.
         """
         if category_type is not 'YAHZTEE' and current_score > -1:
             message = ('{} category already contains a score.  Please select a different score category.').format(
-                str(category_type))            
+                str(category_type))
             raise endpoints.ConflictException(message)
 
-        score = scorecard.calculate_score_for_category(roll.dice, category_type)
-        
+        # Calculate the score for this roll based on the category selected.
+        score = scorecard.calculate_score_for_category(
+            roll.dice, category_type)
+
         # Create a score entry for the game history.
         entry = (str(category_type), score)
+        # Add the entry to the game history.
         game.history.append(entry)
-        print 'game', game
-        # Save the changes made to game
-        game.put()
 
-        scorecard.category_scores[str(category_type)] = score  
-        print 'scorecard after scoring: ', scorecard
+        # Update the scorecard with the calculated score.
+        scorecard.category_scores[str(category_type)] = score
+        
         roll.isScored = True
         roll.put()
 
-        # # Save the updated scorecard values.
+        # Save the updated scorecard values.
         scorecard.put()
+
+        # Check to see if the game is over.
+        game_over = scorecard.check_full()
+        print 'game_over = ', game_over
+
+        # If the game is now over, calculate the final score.
+        if game_over:
+            # Set game over flag on the game
+            game.game_over = True
+
+            final_score = scorecard.calculate_final_score()
+            print 'final score:', final_score
+            # Set the new high score for the user
+            if user.high_score < final_score:
+                user.high_score = final_score
+
+
+        # Save the changes made to game
+        game.put()
+
+        # Save the changes made to the user
+        user.put()
+
         return scorecard.to_form()
 
-# Score Card
+    # Get user's scorecard
     @endpoints.method(request_message=SCORECARD_REQUEST,
                       response_message=ScoreCardForm,
                       path='game/{urlsafe_game_key}/scorecard',
@@ -287,6 +327,13 @@ class YahtzeeApi(remote.Service):
         print 'scorecard', scorecard
         return scorecard.to_form()
 
+    # Get high scores
+    @endpoints.method(request_message=HIGH_SCORES_REQUEST,
+                      response_message=HighScoresForm,
+                      path='high_scores',
+                      http_method='GET')
+    def get_high_scores(self, request):
+        pass
 
 # registers API
 api = endpoints.api_server([YahtzeeApi])
