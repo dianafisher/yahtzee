@@ -333,7 +333,13 @@ class YahtzeeApi(remote.Service):
                       path='high_scores',
                       http_method='GET')
     def get_high_scores(self, request):
-        pass
+        """
+        Returns the leaderboard - or list of high scores in descending order.
+        Optional Parameter: number_of_results to limit the number of results returned.
+        """
+        users = User.query().fetch()
+        users = sorted(users, key=lambda x:x.high_score, reverse=True)
+        return HighScoresForm(scores=[user.high_score for user in users])
 
 # registers API
 api = endpoints.api_server([YahtzeeApi])
