@@ -92,6 +92,17 @@ class YahtzeeApi(remote.Service):
         #         request.user_name))
         return user.to_form()
 
+    #Get user rankings
+    @endpoints.method(response_message=UserForms,
+                      path='user/ranking',
+                      name='get_user_rankings',
+                      http_method='GET')
+    def get_user_rankings(self, request):
+      """Return all Users ranked by their high score"""
+      users = User.query().fetch()
+      users = sorted(users, key=lambda x:x.high_score, reverse=True)
+      return UserForms(users=[user.to_form() for user in users])
+
     # Get all users
     @endpoints.method(response_message=UserForms,
                       path='user/list',
@@ -292,10 +303,9 @@ class YahtzeeApi(remote.Service):
 
             final_score = scorecard.calculate_final_score()
             print 'final score:', final_score
-            # Set the new high score for the user
-            if user.high_score < final_score:
-                user.high_score = final_score
 
+            # Set the new high score for the user
+            user.add_score(final_score)          
 
         # Save the changes made to game
         game.put()
@@ -334,7 +344,7 @@ class YahtzeeApi(remote.Service):
                       http_method='GET')
     def get_high_scores(self, request):
         """
-        Returns the leaderboard - or list of high scores in descending order.
+        Returns a list of high scores in descending order.
         Optional Parameter: number_of_results to limit the number of results returned.
         """
         users = User.query().fetch()

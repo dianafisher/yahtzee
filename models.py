@@ -13,13 +13,23 @@ class User(ndb.Model):
     name = ndb.StringProperty(required=True)
     email = ndb.StringProperty()
     high_score = ndb.IntegerProperty(default=0)
+    total_played = ndb.IntegerProperty(default=0)    
 
     def to_form(self):
         """Returns a UserForm representation of the User"""
         form = UserForm(urlsafe_key=self.key.urlsafe(),
                         user_name=self.name,
-                        email=self.email)
+                        email=self.email,
+                        total_played=self.total_played,
+                        high_score=self.high_score)
         return form
+
+    def add_score(self, score):
+        self.total_played += 1
+        if score > self.high_score:
+            self.high_score = score
+
+        self.put()
 
 
 class Score(ndb.Model):
@@ -41,7 +51,8 @@ class UserForm(messages.Message):
     urlsafe_key = messages.StringField(1, required=True)
     user_name = messages.StringField(2, required=True)
     email = messages.StringField(3, required=True)
-
+    total_played = messages.IntegerField(4, required=True)
+    high_score = messages.IntegerField(5, required=True)
 
 class UserForms(messages.Message):
     """Form to return a list of all users"""
