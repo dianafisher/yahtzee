@@ -135,7 +135,7 @@ class YahtzeeApi(remote.Service):
                       response_message=GameForms,
                       path='user/games',
                       name='get_user_games',
-                      http_method='POST')
+                      http_method='GET')
     def get_user_games(self, request):
         """Returns the active games for a user."""
 
@@ -234,6 +234,10 @@ class YahtzeeApi(remote.Service):
             raise endpoints.ConflictException(
                 'Cannot roll more than 3 times in a single turn.  Please score roll instead.')
 
+        keepers = request.keepers
+        if len(keepers) != 5:
+          raise endpoints.ConflictException('Keepers array must have five elements (0 or 1).')
+
         return roll.reroll(request.keepers)
 
     # Calculate the score for the specified roll
@@ -320,7 +324,7 @@ class YahtzeeApi(remote.Service):
                       response_message=ScoreCardForm,
                       path='game/{urlsafe_game_key}/scorecard',
                       name='score_card',
-                      http_method='POST')
+                      http_method='GET')
     def score_card(self, request):
         """Returns the user's scorecard for the game"""
         user = User.query(User.name == request.user_name).get()
