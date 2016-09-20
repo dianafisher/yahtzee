@@ -10,8 +10,9 @@
 
 ##Game Description:
 
-#### Objective
-The objective of the game is to score the most points by rolling dice to make certain combinations. The game is played with five six-sided dice.
+[Source](https://en.wikipedia.org/wiki/Yahtzee)
+
+Yahtzee is a dice game made by Milton Bradley.  The objective of the game is to score the most points by rolling five dice to make certain combinations.  The dice can be rolled up to three times in a turn to try to make various scoring combinations.  A game consists of thirteen rounds.  After each round the player chooses which scoring category is to be used for that round.  Once a category has been used in the game, it cannot be used again.  The scoring categories have varying point values, some of which are fixed values and others where the score depends on the value of the dice.  A YAHTZEE is five-of-a-kind and scores 50 points; the highest of any category.  The winner is the player who scores the most points.
 
 #### Game Play
 
@@ -30,3 +31,11 @@ Players can make 35 points bonus if they score a total of 63 or more in the uppe
  - utils.py: Helper function for retrieving ndb.Models by urlsafe Key string.
 
 ##Endpoints Included:
+- **create_user**
+    - Path: 'user'
+    - Method: POST
+    - Parameters: user_name
+    - Returns: Message confirming creation of the User.
+    - Description: Creates a new User.  user_name must be provided and must be unique.
+    - Exceptions: A ConfictException will be raised if a User with that user_name already exists.
+- 
