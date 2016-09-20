@@ -12,15 +12,17 @@
 
 [Source](https://en.wikipedia.org/wiki/Yahtzee)
 
-Yahtzee is a dice game made by Milton Bradley.  The objective of the game is to score the most points by rolling five dice to make certain combinations.  The dice can be rolled up to three times in a turn to try to make various scoring combinations.  A game consists of thirteen rounds.  After each round the player chooses which scoring category is to be used for that round.  Once a category has been used in the game, it cannot be used again.  The scoring categories have varying point values, some of which are fixed values and others where the score depends on the value of the dice.  A YAHTZEE is five-of-a-kind and scores 50 points; the highest of any category.  The winner is the player who scores the most points.
+This API supports a single-player version of Yahzee.  Yahtzee is a dice game made by Milton Bradley.  The objective of the game is to score the most points by rolling five dice to make certain combinations.  The dice can be rolled up to three times in a turn to try to make various scoring combinations.  A game consists of thirteen turns.  After each turn the player chooses which scoring category is to be used for that turn.  Once a category has been used in the game, it cannot be used again.  The scoring categories have varying point values, some of which are fixed values and others where the score depends on the value of the dice.  A Yahtzee is five-of-a-kind and scores 50 points; the highest of any category.  The goal is to score the most points.
 
-#### Game Play
+A scorecard is provided for the user for each game.  It contains 13 different category boxes and in each turn, after the third roll, the player must choose one of these categories. The score entered in the box depends on how well the five dice match the scoring rule for the category.  The scorecard categories are divided into two sections: the upper section and the lower section.
 
-Each player is given 13 turns in all to score. In each turn the dice can be rolled up to three times. The player is not required to roll dice for exactly three times. If they have achieved a combination earlier, they can call it and pass the turn to next player. There are a total of 13 possible combinations and each combination can only be used once so once a player has called for a combination and used it, it can not be used to score in later turns.
+In the upper section there are six boxes. The score in each of these boxes is determined by adding the total number of dice matching that box.  If a player scores a total of 63 or more points in these six boxes, a bonus of 35 is added to the upper section score.
 
-The scorecard contains two sections: an upper section and a lower section.
+The lower section contains a number of poker-themed categories with specific point values.
 
-Players can make 35 points bonus if they score a total of 63 or more in the upper section.
+If a category is chosen but the dice do not match the requirements of the category the player scores 0 in that category. 
+
+A Yahtzee occurs when all five dice are the same. If a player throws a Yahtzee but the Yahtzee category has already been used, special rules apply.  If the player throws a Yahtzee and has already filled the Yahtzee box with a score of 50, they score a Yahtzee bonus and get an extra 100 points. However, if they throw a Yahtzee and have filled the Yahtzee category with a score of 0, they do not get a Yahtzee bonus.  This API does not support Joker rules for Yahtzee bonuses [*](https://en.wikipedia.org/wiki/Yahtzee#Rules).
 
 ##Files Included:
  - api.py: Contains endpoints and game playing logic.
