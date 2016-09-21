@@ -43,6 +43,19 @@ A Yahtzee occurs when all five dice are the same. If a player throws a Yahtzee b
 - **new_game**
     - Path: 'game'
     - Method: POST
+- **cancel_game**
+- **get_game_history**
+- **get_high_scores**
+- **get_scorecard**
+- **get_user_games**
+- **get_user_rankings**
+- **get_users**
+- **new_turn**
+- **roll_again**
+- **score_turn**
+
+
+
 
 ##Models Included:
 - **User**
@@ -63,5 +76,13 @@ A Yahtzee occurs when all five dice are the same. If a player throws a Yahtzee b
     - Records completed games.  Associated with User model via KeyProperty user_name
 
 ##Forms Included:
+- **HighScoresForm**
+- **GameForm**
+- **GameForms**
+- **GameHistoryForm**
 - **ScorecardForm**
     - Representation of the user's scorecard for the game.
+- **ScoreTurnForm**
+- **TurnForm**
+- **UserForm**
+- **UserForms**

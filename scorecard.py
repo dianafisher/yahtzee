@@ -270,8 +270,5 @@ class ScorecardForm(messages.Message):
     game_over = messages.BooleanField(6, required=True)
 
 
-class ScoreRollForm(messages.Message):
-    category_type = messages.EnumField('CategoryType', 1)    
-
 class ScoreTurnForm(messages.Message):
     category_type = messages.EnumField('CategoryType', 1)        
