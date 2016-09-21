@@ -6,13 +6,15 @@ class Game(ndb.Model):
     game_over = ndb.BooleanProperty(required=True, default=False)
     user = ndb.KeyProperty(required=True, kind='User')
     history = ndb.PickleProperty(required=True)
-    has_unscored_roll = ndb.BooleanProperty(required=True)    
+    has_unscored_roll = ndb.BooleanProperty(required=True)
+    turn_count = ndb.IntegerProperty(required=True)
 
     @classmethod
     def new_game(cls, user):
         """Creates and returns a new game"""
         game = Game(user=user)
         game.history = []
+        game.turn_count = 0
         game.has_unscored_roll = False
         game.put()
         return game
@@ -22,6 +24,7 @@ class Game(ndb.Model):
         form = GameForm(urlsafe_key=self.key.urlsafe(),
                         user_name=self.user.get().name,
                         game_over=self.game_over,
+                        turn_count=self.turn_count,
                         has_unscored_roll=self.has_unscored_roll)
         return form
     
@@ -31,7 +34,8 @@ class GameForm(messages.Message):
     urlsafe_key = messages.StringField(1, required=True)
     game_over = messages.BooleanField(2, required=True)
     user_name = messages.StringField(3, required=True)
-    has_unscored_roll = messages.BooleanField(4, required=True)
+    turn_count = messages.IntegerField(4, required=True)
+    has_unscored_roll = messages.BooleanField(5, required=True)
 
 
 class GameForms(messages.Message):

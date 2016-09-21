@@ -8,7 +8,7 @@ import webapp2
 from google.appengine.api import mail, app_identity
 # from api import GuessANumberApi
 
-from models import User
+from user import User
 from game import Game
 
 

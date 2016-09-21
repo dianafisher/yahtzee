@@ -22,7 +22,7 @@ The lower section contains a number of poker-themed categories with specific poi
 
 If a category is chosen but the dice do not match the requirements of the category the player scores 0 in that category. 
 
-A Yahtzee occurs when all five dice are the same. If a player throws a Yahtzee but the Yahtzee category has already been used, special rules apply.  If the player throws a Yahtzee and has already filled the Yahtzee box with a score of 50, they score a Yahtzee bonus and get an extra 100 points. However, if they throw a Yahtzee and have filled the Yahtzee category with a score of 0, they do not get a Yahtzee bonus.  This API does not support Joker rules for Yahtzee bonuses [*](https://en.wikipedia.org/wiki/Yahtzee#Rules).
+A Yahtzee occurs when all five dice are the same. If a player throws a Yahtzee but the Yahtzee category has already been used, special rules apply.  If the player throws a Yahtzee and has already filled the Yahtzee box with a score of 50, they score a Yahtzee bonus and get an extra 100 points. However, if they throw a Yahtzee and have filled the Yahtzee category with a score of 0, they do not get a Yahtzee bonus.  This API does not support Joker rules for Yahtzee bonuses. [*](https://en.wikipedia.org/wiki/Yahtzee#Rules)
 
 ##Files Included:
  - api.py: Contains endpoints and game playing logic.
@@ -40,4 +40,28 @@ A Yahtzee occurs when all five dice are the same. If a player throws a Yahtzee b
     - Returns: Message confirming creation of the User.
     - Description: Creates a new User.  user_name must be provided and must be unique.
     - Exceptions: A ConfictException will be raised if a User with that user_name already exists.
-- 
+- **new_game**
+    - Path: 'game'
+    - Method: POST
+
+##Models Included:
+- **User**
+    - Stores unique user_name and (optional) email address.
+    - Keeps track of total_played
+
+- **Game**
+    - Stores unique game states.  Associated with User model via KeyProperty user_name
+
+- **Turn**
+    - Stores each roll of the five dice.
+    - Associated with Game model via KeyProperty game
+
+- **Scorecard**
+    - Stores the score earned for each category.
+
+- **Score**
+    - Records completed games.  Associated with User model via KeyProperty user_name
+
+##Forms Included:
+- **ScorecardForm**
+    - Representation of the user's scorecard for the game.

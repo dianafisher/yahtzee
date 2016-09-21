@@ -1,0 +1,13 @@
+##Design Decisions
+
+How to best represent a turn?  A turn can consist of 1 to 3 rolls, so should it be a Roll entity?  A Turn entity containing multiple rows?  How should the API work when a new turn is created?  Should it automatically roll the dice, or should there be a specific API call for rolling the dice after creating a new turn?
+
+How to represent which dice to keep in each roll?
+
+Should a Scorecard be per User or per Game, or both?
+Should a Turn be per Game or should it reference both Game and User?
+For two player support, a Turn should reference both the User and the Game.  But since this is a one-player game, I thought it was best to simply reference the game.  Otherwise, every time user rolls the dice, the user_name would have to be supplied in the request.
+
+Category scores are held in a dictionary with the category type string as the key.  The Scorecard class is responsible for calculating the score for a particular roll based on the category type selected.
+
+When the scorecard is full, the game is over and the final score is calculated.  Any bonuses awarded along the way are added to the final score.

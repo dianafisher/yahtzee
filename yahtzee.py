@@ -9,15 +9,16 @@ from google.appengine.api import taskqueue
 
 from google.appengine.ext import ndb
 
-from models import User, Score, GameHistoryForm, \
-    StringMessage, UserForm, UserForms, HighScoresForm
+from models import Score, GameHistoryForm, \
+    StringMessage, HighScoresForm
 
+from user import User, UserForm, UserForms
 from game import Game, GameForm, GameForms
 
 from roll import Roll, RollDiceForm, RollResultForm
 from roll import ScoreRollResultForm, RerollDiceForm
-from scorecard import CategoryType, ScoreCard, ScoreRollForm
-from scorecard import ScoreCardRequestForm, ScoreCardForm
+from scorecard import CategoryType, Scorecard, ScoreRollForm
+from scorecard import ScorecardForm
 
 from utils import get_by_urlsafe
 
@@ -56,8 +57,7 @@ REROLL_DICE_REQUEST = endpoints.ResourceContainer(
     RerollDiceForm,
     urlsafe_roll_key=messages.StringField(1),)
 
-SCORECARD_REQUEST = endpoints.ResourceContainer(
-    ScoreCardRequestForm,
+SCORECARD_REQUEST = endpoints.ResourceContainer(    
     urlsafe_game_key=messages.StringField(1),)
 
 HIGH_SCORES_REQUEST = endpoints.ResourceContainer(
@@ -127,7 +127,9 @@ class YahtzeeApi(remote.Service):
                 'A User with that name does not exist!')
 
         game = Game.new_game(user.key)
-        score_card = ScoreCard.new_scorecard(user.key, game.key)
+
+        # Create a new scorecard for this game
+        score_card = Scorecard.new_scorecard(game.key)
         return game.to_form()
 
     # Get user active games
@@ -242,7 +244,7 @@ class YahtzeeApi(remote.Service):
 
     # Calculate the score for the specified roll
     @endpoints.method(request_message=SCORE_ROLL_REQUEST,
-                      response_message=ScoreCardForm,
+                      response_message=ScorecardForm,
                       path='roll/{urlsafe_roll_key}/score',
                       name='score_roll',
                       http_method='PUT')
@@ -262,8 +264,7 @@ class YahtzeeApi(remote.Service):
         user = roll.user.get()
 
         # Get the user's score card for this game.
-        scorecard = ScoreCard.query(
-            ndb.AND(ScoreCard.user == user.key, ScoreCard.game == game.key)).get()
+        scorecard = Scorecard.query(Scorecard.game == game.key).get()
 
         # print 'scorecard: ', scorecard
         current_score = scorecard.category_scores[str(category_type)]
@@ -319,25 +320,18 @@ class YahtzeeApi(remote.Service):
 
         return scorecard.to_form()
 
-    # Get user's scorecard
+    # Get the scorecard for a game
     @endpoints.method(request_message=SCORECARD_REQUEST,
-                      response_message=ScoreCardForm,
+                      response_message=ScorecardForm,
                       path='game/{urlsafe_game_key}/scorecard',
                       name='score_card',
                       http_method='GET')
-    def score_card(self, request):
-        """Returns the user's scorecard for the game"""
-        user = User.query(User.name == request.user_name).get()
-        if not user:
-            raise endpoints.NotFoundException(
-                'A User with that name does not exist!')
-
+    def score_card(self, request):        
         game = get_by_urlsafe(request.urlsafe_game_key, Game)
         if not game:
             raise endpoints.NotFoundException('Game not found')
 
-        scorecard = ScoreCard.query(
-            ndb.AND(ScoreCard.user == user.key, ScoreCard.game == game.key)).get()
+        scorecard = Scorecard.query(Scorecard.game == game.key).get()
         print 'scorecard', scorecard
         return scorecard.to_form()
 

@@ -20,9 +20,8 @@ class CategoryType(messages.Enum):
     CHANCE = 13
 
 
-class ScoreCard(ndb.Model):
-    """ScoreCard object"""
-    user = ndb.KeyProperty(required=True, kind='User')
+class Scorecard(ndb.Model):
+    """ScoreCard object"""    
     game = ndb.KeyProperty(required=True, kind='Game')
     upper_section_total = ndb.IntegerProperty(default=0)
     bonus_points = ndb.IntegerProperty(default=0)
@@ -31,9 +30,9 @@ class ScoreCard(ndb.Model):
     yahzee_bonus_count = ndb.IntegerProperty(default=0)
 
     @classmethod
-    def new_scorecard(cls, user, game):
-        """Returns a new (empty) score card for a user"""
-        score_card = ScoreCard(user=user, game=game)
+    def new_scorecard(cls, game):
+        """Returns a new (empty) score card for the game"""
+        score_card = Scorecard(game=game)
         scores = {}
         scores['ACES'] = -1
         scores['TWOS'] = -1
@@ -250,8 +249,7 @@ class ScoreCard(ndb.Model):
         return score
 
     def to_form(self):
-        return ScoreCardForm(
-            user_name = self.user.get().name,
+        return ScorecardForm(            
             upper_section_total=self.upper_section_total,
             bonus_points=self.bonus_points,
             category_scores=str(self.category_scores),
@@ -261,20 +259,15 @@ class ScoreCard(ndb.Model):
         )
 
 
-class ScoreCardRequestForm(messages.Message):
-    """Used to request the user's scorecard"""
-    user_name = messages.StringField(1, required=True)
 
-
-class ScoreCardForm(messages.Message):
-    """Used to return the user's scorecard"""
-    user_name = messages.StringField(1, required=True)
-    upper_section_total = messages.IntegerField(2, required=True)
-    bonus_points = messages.IntegerField(3, required=True)
-    category_scores = messages.StringField(4, required=True)
-    yahzee_bonus_count = messages.IntegerField(5, required=True)
-    final_score = messages.IntegerField(6, required=True)
-    game_over = messages.BooleanField(7, required=True)
+class ScorecardForm(messages.Message):
+    """Used to return the user's scorecard"""    
+    upper_section_total = messages.IntegerField(1, required=True)
+    bonus_points = messages.IntegerField(2, required=True)
+    category_scores = messages.StringField(3, required=True)
+    yahzee_bonus_count = messages.IntegerField(4, required=True)
+    final_score = messages.IntegerField(5, required=True)
+    game_over = messages.BooleanField(6, required=True)
 
 
 class ScoreRollForm(messages.Message):
