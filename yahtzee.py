@@ -316,11 +316,16 @@ class YahtzeeApi(remote.Service):
             final_score = scorecard.calculate_final_score()
             print 'final score:', final_score
 
+            # Get the user
+            user = game.user.get()
             # Set the new high score for the user
             user.add_score(final_score)
+            # Save changes made to user
+            user.put()
 
         # Save the changes made to game
         game.put()
+
 
         return scorecard.to_form()
 
@@ -351,10 +356,12 @@ class YahtzeeApi(remote.Service):
         """Returns the scorecard for a game."""
         game = get_by_urlsafe(request.urlsafe_game_key, Game)
         if not game:
-            raise endpoints.NotFoundException('Game not found')
+            raise endpoints.NotFoundException('Game not found!')
 
         scorecard = Scorecard.query(Scorecard.game == game.key).get()
-        print 'scorecard', scorecard
+        if not scorecard:
+          raise endpoints.NotFoundException('Scorecard not found!')
+        
         return scorecard.to_form()
 
     # Get high scores
@@ -367,8 +374,11 @@ class YahtzeeApi(remote.Service):
         Returns a list of high scores in descending order.
         Optional Parameter: number_of_results to limit the number of results returned.
         """
-        users = User.query().fetch()
-        users = sorted(users, key=lambda x: x.high_score, reverse=True)
+        if request.number_of_results:
+          users = User.query().order(-User.high_score).fetch(request.number_of_results, offset=0)
+        else:
+          users = User.query().order(-User.high_score).fetch()
+        # users = sorted(users, key=lambda x: x.high_score, reverse=True)
         return HighScoresForm(scores=[user.high_score for user in users])
 
 # registers API
