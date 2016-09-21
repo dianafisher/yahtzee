@@ -272,3 +272,6 @@ class ScorecardForm(messages.Message):
 
 class ScoreRollForm(messages.Message):
     category_type = messages.EnumField('CategoryType', 1)    
+
+class ScoreTurnForm(messages.Message):
+    category_type = messages.EnumField('CategoryType', 1)        
