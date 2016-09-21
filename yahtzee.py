@@ -200,13 +200,14 @@ class YahtzeeApi(remote.Service):
         if game.has_incomplete_turn:
             raise endpoints.ConflictException('Previous turn not yet scored.')
 
-        turn_number = game.turn_count + 1
-        print 'turn_number:', turn_number
-        turn = Turn.new_turn(game.key, turn_number)
-
-        game.history[turn_number] = []
+        # Increase the game turn count
+        game.turn_count += 1
+        print 'game.turn_count:', game.turn_count
+        turn = Turn.new_turn(game.key, game.turn_count)
+        
+        game.history[game.turn_count] = []
         history_entry = (1, turn.dice)
-        game.history[turn_number].append(history_entry)
+        game.history[game.turn_count].append(history_entry)
         game.put()
 
         return turn.to_form()
