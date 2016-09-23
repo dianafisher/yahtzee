@@ -1,3 +1,4 @@
+from datetime import date
 from protorpc import messages
 from google.appengine.ext import ndb
 
@@ -27,8 +28,38 @@ class Game(ndb.Model):
                         turn_count=self.turn_count,
                         has_incomplete_turn=self.has_incomplete_turn)
         return form
+
+    def end_game(self, score):        
+        self.game_over = True
+        self.put()
+
+        # Update the user
+        # Get the user
+        user = self.user.get()
+        # Set the new high score for the user
+        user.add_score(score)
+        # Save changes made to user
+        user.put()
+
+        # Add the game to the score board.
+        score = Score(user=self.user, date=date.today(), score=score)
+        score.put()
     
     
+class Score(ndb.Model):
+    """Score object"""
+    user = ndb.KeyProperty(required=True, kind='User')
+    date = ndb.DateProperty(required=True)    
+    score = ndb.IntegerProperty(required=True)    
+
+    def to_form(self):
+        return ScoreForm(user_name=self.user.get().name,
+                         date=str(self.date), 
+                         score=self.score)
+
+
+# Forms
+
 class GameForm(messages.Message):
     """GameForm for outbound game state information"""
     urlsafe_key = messages.StringField(1, required=True)
@@ -41,3 +72,27 @@ class GameForm(messages.Message):
 class GameForms(messages.Message):
     """Form to return list of games"""
     games = messages.MessageField(GameForm, 1, repeated=True)        
+
+
+class ScoreForm(messages.Message):
+    """ScoreForm for outbound Score information"""
+    user_name = messages.StringField(1, required=True)
+    date = messages.StringField(2, required=True)
+    score = messages.IntegerField(3, required=True)
+
+
+class ScoreForms(messages.Message):
+    """Return multiple ScoreForms"""
+    items = messages.MessageField(ScoreForm, 1, repeated=True)
+
+
+class HighScoresForm(messages.Message):
+    scores = messages.IntegerField(1, repeated=True)
+
+
+class StringMessage(messages.Message):
+    """StringMessage-- outbound (single) string message"""
+    message = messages.StringField(1, required=True)
+
+class GameHistoryForm(messages.Message):
+    history = messages.StringField(1, required=True)    

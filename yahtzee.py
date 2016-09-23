@@ -9,11 +9,9 @@ from google.appengine.api import taskqueue
 
 from google.appengine.ext import ndb
 
-from models import Score, GameHistoryForm, \
-    StringMessage, HighScoresForm
-
 from user import User, UserForm, UserForms
-from game import Game, GameForm, GameForms
+from game import Game, GameForm, GameForms, StringMessage, \
+    GameHistoryForm, Score, ScoreForms, HighScoresForm
 
 from turn import Turn, TurnForm
 
@@ -121,20 +119,20 @@ class YahtzeeApi(remote.Service):
 
     # Get all users
     @endpoints.method(response_message=UserForms,
-                      path='user/list',
+                      path='user',
                       name='get_users',
                       http_method='GET')
     def get_users(self, request):
-        """Returns the list of all users."""
+        """Returns all Users in the database."""
         return UserForms(users=[user.to_form() for user in User.query()])
 
     # Create new game for user
     @endpoints.method(request_message=NEW_GAME_REQUEST,
                       response_message=GameForm,
                       path='game',
-                      name='new_game',
+                      name='create_game',
                       http_method='POST')
-    def new_game(self, request):
+    def create_game(self, request):
         """Creates new game."""
         print 'new game requested for user ', request.user_name
         user = User.query(User.name == request.user_name).get()
@@ -147,6 +145,16 @@ class YahtzeeApi(remote.Service):
         # Create a new scorecard for this game
         score_card = Scorecard.new_scorecard(game.key)
         return game.to_form()
+
+    # Get all games
+    @endpoints.method(response_message=GameForms,
+                      path='game',
+                      name='get_games',
+                      http_method='GET')
+    def get_games(self, request):
+      """Returns all Games in the database."""
+      return GameForms(games=[game.to_form() for game in Game.query()])
+
 
     # Get a game
     @endpoints.method(request_message=GET_GAME_REQUEST,
@@ -203,9 +211,9 @@ class YahtzeeApi(remote.Service):
     @endpoints.method(request_message=NEW_TURN_REQUEST,
                       response_message=TurnForm,
                       path='game/{urlsafe_game_key}/turn',
-                      name='new_turn',
+                      name='create_turn',
                       http_method='POST')
-    def new_turn(self, request):
+    def create_turn(self, request):
         """Creates a new turn for the game.  
         Also performs the first roll of the dice for the turn."""
         game = get_by_urlsafe(request.urlsafe_game_key, Game)
@@ -342,19 +350,13 @@ class YahtzeeApi(remote.Service):
 
         # If the game is now over, calculate the final score.
         if game_over:
-            # Set game over flag on the game
-            game.game_over = True
 
             final_score = scorecard.calculate_final_score()
             print 'final score:', final_score
 
-            # Get the user
-            user = game.user.get()
-            # Set the new high score for the user
-            user.add_score(final_score)
-            # Save changes made to user
-            user.put()
-
+            # End the game
+            game.game_over(final_score)
+            
         # Save the changes made to game
         game.put()
 

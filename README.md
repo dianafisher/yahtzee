@@ -41,11 +41,23 @@ A Yahtzee occurs when all five dice are the same. If a player throws a Yahtzee b
     - Description: Creates a new User.  user_name must be provided and must be unique.
     - Exceptions: A ConflictException will be raised if a User with that user_name already exists.
 
-- **get_user**
-    - Path: 'user/{urlsafe_user_key'
+- **get_users**
+    - Path: 'user'
     - Method: GET
+    - Parameters: None
+    - Returns: UserForms
+    - Description: Returns all Users in the database.
+    - Exceptions: None
 
-- **new_game**
+- **get_user**
+    - Path: 'user/{urlsafe_user_key}'
+    - Method: GET
+    - Parameters: urlsafe_user_key
+    - Returns: UserForm with user details.
+    - Description: Returns the information for a specific User.
+    - Exceptions: A NotFoundException will be raised if the User is not found. 
+
+- **create_game**
     - Path: 'game'
     - Method: POST
     - Parameters: user_name
@@ -53,12 +65,20 @@ A Yahtzee occurs when all five dice are the same. If a player throws a Yahtzee b
     - Description: Creates a new Game for the user.
     - Exceptions: A NotFoundException will be raised if the User is not found. 
 
+- **get_games**
+    - Path: 'game'
+    - Method: GET
+    - Parameters: None
+    - Returns: GameForms
+    - Description: Returns all Games in the database.
+    - Exceptions: None
+
 - **get_game**
     - Path: 'game/{urlsafe_game_key}'
     - Method: GET
     - Parameters: urlsafe_game_key
     - Returns: GameForm with current game state.
-    - Description: Returns the current state of the game.
+    - Description: Returns the current state of the Game.
     - Exceptoins: A NotFoundException will be raised if the Game is not found.
 
 - **cancel_game**
@@ -81,7 +101,7 @@ A Yahtzee occurs when all five dice are the same. If a player throws a Yahtzee b
     - Path: 'scores'
     - Method: GET
     - Parameters: number_of_results (optional)
-    - Returns: ScoreForms.
+    - Returns: HighScoreForm.
     - Description: Returns scores in the database sorted in decreasing order.
 
 - **get_scorecard**
@@ -93,10 +113,16 @@ A Yahtzee occurs when all five dice are the same. If a player throws a Yahtzee b
     - Exceptions: A NotFoundException will be raised if the Game is not found or the Scorecard for the game is not found.
 
 - **get_user_games**
-    - Path: ''
+    - Path: 'user/games'
+    - Method: GET
+    - Parameters: user_name
+    - Returns: GameForms with 1 or more GameForm inside.
+    - Description: Returns all of the User's active games.
+    - Exceptions:
+
 - **get_user_rankings**
-- **get_users**
-- **new_turn**
+
+- **create_turn**
 - **roll_again**
 - **score_turn**
 

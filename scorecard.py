@@ -21,7 +21,7 @@ class CategoryType(messages.Enum):
 
 
 class Scorecard(ndb.Model):
-    """ScoreCard object"""    
+    """Scorecard object"""
     game = ndb.KeyProperty(required=True, kind='Game')
     upper_section_total = ndb.IntegerProperty(default=0)
     bonus_points = ndb.IntegerProperty(default=0)
