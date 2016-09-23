@@ -36,18 +36,64 @@ A Yahtzee occurs when all five dice are the same. If a player throws a Yahtzee b
 - **create_user**
     - Path: 'user'
     - Method: POST
-    - Parameters: user_name
-    - Returns: Message confirming creation of the User.
+    - Parameters: user_name, email
+    - Returns: UserForm with new user details.
     - Description: Creates a new User.  user_name must be provided and must be unique.
-    - Exceptions: A ConfictException will be raised if a User with that user_name already exists.
+    - Exceptions: A ConflictException will be raised if a User with that user_name already exists.
+
+- **get_user**
+    - Path: 'user/{urlsafe_user_key'
+    - Method: GET
+
 - **new_game**
     - Path: 'game'
     - Method: POST
+    - Parameters: user_name
+    - Returns: GameForm with initial game state.
+    - Description: Creates a new Game for the user.
+    - Exceptions: A NotFoundException will be raised if the User is not found. 
+
+- **get_game**
+    - Path: 'game/{urlsafe_game_key}'
+    - Method: GET
+    - Parameters: urlsafe_game_key
+    - Returns: GameForm with current game state.
+    - Description: Returns the current state of the game.
+    - Exceptoins: A NotFoundException will be raised if the Game is not found.
+
 - **cancel_game**
+    - Path: 'game/{urlsafe_game_key}'
+    - Method: DELETE
+    - Parameters: urlsafe_game_key
+    - Returns: StringMessage confirming deletion of game.
+    - Description: Deletes the game.
+    - Exceptions: A BadRequestException will be raised if the game is already over.  A NotFoundException will be raised if the Game is not found.
+
 - **get_game_history**
+    - Path: 'game/{urlsafe_game_key}/history'
+    - Method: GET
+    - Parameters: urlsafe_game_key
+    - Returns: StringMessage containing game history.
+    - Description: Returns the turn history of a game as a stringified dictionary.  The keys of the dictionary are the turn numbers and the values consist of a list of rolls for each turn.  Each roll is represented as a tuple of roll number and the list of dice values in that roll.  Finally, the category selected and the score calculated for the turn is appened to the list as a tuple.
+    - Exceptions: A NotFoundException will be raised if the Game is not found.
+
 - **get_high_scores**
+    - Path: 'scores'
+    - Method: GET
+    - Parameters: number_of_results (optional)
+    - Returns: ScoreForms.
+    - Description: Returns scores in the database sorted in decreasing order.
+
 - **get_scorecard**
+    - Path: 'game/{urlsafe_game_key}/scorecard'
+    - Method: GET
+    - Parameters: urlsafe_game_key
+    - Returns: ScoreCardForm
+    - Description: Returns the scorecard for the game.
+    - Exceptions: A NotFoundException will be raised if the Game is not found or the Scorecard for the game is not found.
+
 - **get_user_games**
+    - Path: ''
 - **get_user_rankings**
 - **get_users**
 - **new_turn**
@@ -77,6 +123,7 @@ A Yahtzee occurs when all five dice are the same. If a player throws a Yahtzee b
 
 ##Forms Included:
 - **HighScoresForm**
+    - Contains the score.
 - **GameForm**
 - **GameForms**
 - **GameHistoryForm**

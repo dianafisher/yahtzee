@@ -32,9 +32,12 @@ __author__ = 'diana.fisher@gmail.com (Diana Fisher)'
 
 # Resource Containers
 
-USER_REQUEST = endpoints.ResourceContainer(
+NEW_USER_REQUEST = endpoints.ResourceContainer(
     user_name=messages.StringField(1),
     email=messages.StringField(2))
+
+GET_USER_REQUEST = endpoints.ResourceContainer(
+  urlsafe_user_key=messages.StringField(1))
 
 NEW_GAME_REQUEST = endpoints.ResourceContainer(
     user_name=messages.StringField(1, required=True))
@@ -75,7 +78,7 @@ class YahtzeeApi(remote.Service):
     """Yahtzee API v0.1"""
 
     # Create user
-    @endpoints.method(request_message=USER_REQUEST,
+    @endpoints.method(request_message=NEW_USER_REQUEST,
                       response_message=UserForm,
                       path='user',
                       name='create_user',
@@ -90,6 +93,20 @@ class YahtzeeApi(remote.Service):
         # return StringMessage(message='User {} created!'.format(
         #         request.user_name))
         return user.to_form()
+
+    # Get user
+    @endpoints.method(request_message=GET_USER_REQUEST,
+                      response_message=UserForm,
+                      path='user/{urlsafe_user_key}',
+                      name='get_user',
+                      http_method='GET')
+    def get_user(self, request):
+      """Returns the user"""
+      user = get_by_urlsafe(request.urlsafe_user_key, User)
+      if user:
+          return user.to_form()
+      else:
+          raise endpoints.NotFoundException('User not found!')
 
     # Get user rankings
     @endpoints.method(response_message=UserForms,
@@ -130,6 +147,20 @@ class YahtzeeApi(remote.Service):
         # Create a new scorecard for this game
         score_card = Scorecard.new_scorecard(game.key)
         return game.to_form()
+
+    # Get a game
+    @endpoints.method(request_message=GET_GAME_REQUEST,
+                      response_message=GameForm,
+                      path='game/{urlsafe_game_key}',
+                      name='get_game',
+                      http_method='GET')
+    def get_game(self, request):
+        """Returns the current game state."""
+        game = get_by_urlsafe(request.urlsafe_game_key, Game)
+        if game:
+          return game.to_form()
+        else:
+          raise endpoints.NotFoundException('Game not found!')
 
     # Get user active games
     @endpoints.method(request_message=USER_GAMES_REQUEST,
@@ -182,15 +213,15 @@ class YahtzeeApi(remote.Service):
             raise endpoints.NotFoundException('Game not found!')
         if game.game_over:
             raise endpoints.NotFoundException('Game is already over!')
-
         if game.has_incomplete_turn:
-            raise endpoints.ConflictException('Previous turn not yet scored.')
+            raise endpoints.ConflictException('Cannot start a new turn until current turn is scored!')
 
         # Increase the game turn count
         game.turn_count += 1
         print 'game.turn_count:', game.turn_count
         turn = Turn.new_turn(game.key, game.turn_count)
         
+        game.has_incomplete_turn = True
         game.history[game.turn_count] = []
         history_entry = (1, turn.dice)
         game.history[game.turn_count].append(history_entry)
@@ -298,7 +329,8 @@ class YahtzeeApi(remote.Service):
         scorecard.category_scores[str(category_type)] = score
 
         # Turn is now complete
-        turn.is_complete = True
+        game.has_incomplete_turn = False
+        turn.is_complete = True        
         turn.put()
 
         # Save the updated scorecard values.
@@ -367,7 +399,7 @@ class YahtzeeApi(remote.Service):
     # Get high scores
     @endpoints.method(request_message=HIGH_SCORES_REQUEST,
                       response_message=HighScoresForm,
-                      path='high_scores',
+                      path='scores',
                       http_method='GET')
     def get_high_scores(self, request):
         """
