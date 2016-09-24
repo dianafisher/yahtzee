@@ -53,7 +53,7 @@ A Yahtzee occurs when all five dice are the same. If a player throws a Yahtzee b
     - Path: 'user/{urlsafe_user_key}'
     - Method: GET
     - Parameters: urlsafe_user_key
-    - Returns: UserForm with user details.
+    - Returns: UserForm.
     - Description: Returns the information for a specific User.
     - Exceptions: A NotFoundException will be raised if the User is not found. 
 
@@ -121,8 +121,20 @@ A Yahtzee occurs when all five dice are the same. If a player throws a Yahtzee b
     - Exceptions:
 
 - **get_user_rankings**
+    - Path: 'user/ranking'
+    - Method: GET
+    - Parameters: None
+    - Returns: UserForms
+    - Description: Returns all users ranked by their high score.
 
 - **create_turn**
+    - Path: 'game/{urlsafe_game_key}/turn'
+    - Method: POST
+    - Paramters: urlsafe_game_key
+    - Returns: TurnForm
+    - Description:
+    - Exceptions: 
+
 - **roll_again**
 - **score_turn**
 
@@ -151,11 +163,16 @@ A Yahtzee occurs when all five dice are the same. If a player throws a Yahtzee b
 - **HighScoresForm**
     - Contains the score.
 - **GameForm**
+    - Representation of a Game's state.
 - **GameForms**
+    - Container for one or more GameForm
 - **GameHistoryForm**
 - **ScorecardForm**
     - Representation of the user's scorecard for the game.
 - **ScoreTurnForm**
 - **TurnForm**
+    - Representation of a Turn.
 - **UserForm**
+    - Representation of a User.  Includes the User's high score.
 - **UserForms**
+    - Container for one or more UserForm.
