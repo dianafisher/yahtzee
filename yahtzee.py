@@ -163,7 +163,7 @@ class YahtzeeApi(remote.Service):
                       name='get_game',
                       http_method='GET')
     def get_game(self, request):
-        """Returns the current game state."""
+        """Returns the current Game state."""
         game = get_by_urlsafe(request.urlsafe_game_key, Game)
         if game:
           return game.to_form()

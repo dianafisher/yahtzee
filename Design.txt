@@ -11,3 +11,5 @@ For two player support, a Turn should reference both the User and the Game.  But
 Category scores are held in a dictionary with the category type string as the key.  The Scorecard class is responsible for calculating the score for a particular roll based on the category type selected.
 
 When the scorecard is full, the game is over and the final score is calculated.  Any bonuses awarded along the way are added to the final score.
+
+Do we need a separate entity for Turns?  Maybe everything can just be stored in the Game object.

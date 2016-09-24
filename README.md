@@ -25,7 +25,7 @@ If a category is chosen but the dice do not match the requirements of the catego
 A Yahtzee occurs when all five dice are the same. If a player throws a Yahtzee but the Yahtzee category has already been used, special rules apply.  If the player throws a Yahtzee and has already filled the Yahtzee box with a score of 50, they score a Yahtzee bonus and get an extra 100 points. However, if they throw a Yahtzee and have filled the Yahtzee category with a score of 0, they do not get a Yahtzee bonus.  This API does not support Joker rules for Yahtzee bonuses. [*](https://en.wikipedia.org/wiki/Yahtzee#Rules)
 
 ##Files Included:
- - api.py: Contains endpoints and game playing logic.
+ - yahztee.py: Contains endpoints and game playing logic.
  - app.yaml: App configuration.
  - cron.yaml: Cronjob configuration.
  - main.py: Handler for taskqueue handler.
