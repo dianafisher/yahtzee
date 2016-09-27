@@ -1,3 +1,4 @@
+import random
 from datetime import date
 from protorpc import messages
 from google.appengine.ext import ndb
@@ -30,7 +31,10 @@ class Game(ndb.Model):
     bonus_points = ndb.IntegerProperty(default=0)
     category_scores = ndb.PickleProperty(required=True)
     final_score = ndb.IntegerProperty(default=0)
-    yahzee_bonus_count = ndb.IntegerProperty(default=0)
+    yahtzee_bonus_count = ndb.IntegerProperty(default=0)
+
+    dice = ndb.PickleProperty(required=True)        
+    roll_count = ndb.IntegerProperty(required=True, default=0)
 
     @classmethod
     def new_game(cls, user):
@@ -39,6 +43,7 @@ class Game(ndb.Model):
         game.history = {}
         game.turn_count = 0
         game.has_incomplete_turn = False
+        game.dice = []
 
         scores = {}
         scores['ACES'] = -1
@@ -69,47 +74,97 @@ class Game(ndb.Model):
                         upper_section_total=self.upper_section_total,
                         bonus_points=self.bonus_points,
                         category_scores=str(self.category_scores),
-                        yahzee_bonus_count=self.yahzee_bonus_count,
-                        final_score = self.final_score)
+                        yahtzee_bonus_count=self.yahtzee_bonus_count,
+                        final_score = self.final_score,
+                        dice=self.dice,
+                        roll_count=self.roll_count,
+                        history=str(self.history))
         return form
 
-    def calculate_score_for_category(self, dice, category):
-        """Returns the score for the given dice in the given category."""
+    def can_roll(self):
+        return self.roll_count > 0
 
-        # Maintain a frequency table of dice values
+    def roll_again(self, keepers):
+        self.roll_count += 1
+        # Choose a random number between 1 and 6 for each die that is not marked as a 'keeper'
+        for i in range(5):
+            if keepers[i] == 0:
+                value = random.choice(range(1, 7))
+                self.dice[i] = value
+                print value
+        
+        # Update the game history.        
+        entry = (self.roll_count, self.dice)
+        if self.turn_count not in self.history :
+            self.history[self.turn_count] = []        
+        self.history[self.turn_count].append(entry)
+
+        # Save changes
+        self.put()
+
+        # Return GameForm
+        return self.to_form()
+
+    def roll_dice(self):    
+        """Rolls the dice for a new turn.  Must score any previous turn before calling this method."""        
+        self.roll_count += 1
+        # This method marks the beginning of a new turn.
+        self.turn_count += 1    
+        self.has_incomplete_turn = True
+
+        # Choose a random number between 1 and 6 for each die       
+        for i in range(5):
+            value = random.choice(range(1, 7))
+            self.dice.append(value)
+            print value
+       
+        # Update the game history.
+        entry = (self.roll_count, self.dice)           
+        if self.turn_count not in self.history :
+            self.history[self.turn_count] = []        
+        self.history[self.turn_count].append(entry)
+
+        # Save changes
+        self.put()
+
+        # Return GameForm
+        return self.to_form()
+
+
+    def score_roll(self, category):
         frequencies = {}
-        for d in dice:
+        for d in self.dice:
             if d in frequencies:
                 count = frequencies[d]
                 count += 1
                 frequencies[d] = count
             else:
                 frequencies[d] = 1
-
+    
         score = 0
         if (category is CategoryType.ACES):
             # Total of ones only
-            score = self.totalOf(1, dice)
+            score = self.totalOf(1)            
 
         elif (category is CategoryType.TWOS):
             # Total of twos only
-            score = self.totalOf(2, dice)
+            score = self.totalOf(2)
 
         elif (category is CategoryType.THREES):
             # Total of threes only
-            score = self.totalOf(3, dice)
+            score = self.totalOf(3)
 
         elif (category is CategoryType.FOURS):
             # Total of fours only
-            score = self.totalOf(4, dice)
+            score = self.totalOf(4)
 
         elif (category is CategoryType.FIVES):
             # Total of fives only
-            score = self.totalOf(5, dice)
+            score = self.totalOf(5)
 
         elif (category is CategoryType.SIXES):
             # Total of sixes only
-            score = self.totalOf(6, dice)
+            score = self.totalOf(6)
 
         elif (category is CategoryType.THREE_OF_A_KIND):
             # If there are three of a kind, the score is equal to the sum of
@@ -120,7 +175,7 @@ class Game(ndb.Model):
                     found = True
                     break
             if found:
-                score = sum(dice)
+                score = sum(self.dice)
 
         elif (category is CategoryType.FOUR_OF_A_KIND):
             # If there are four of a kind, the score is equal to the sum of all
@@ -131,7 +186,7 @@ class Game(ndb.Model):
                     found = True
                     break
             if found:
-                score = sum(dice)
+                score = sum(self.dice)
 
         elif category is CategoryType.FULL_HOUSE:
             # A full house is worth 25 points.
@@ -140,18 +195,18 @@ class Game(ndb.Model):
 
         elif category is CategoryType.SMALL_STRAIGHT:
             # A small straight is worth 30 points.
-            if {1, 2, 3, 4} <= set(dice):
+            if {1, 2, 3, 4} <= set(self.dice):
                 score = 30
-            elif {2, 3, 4, 5} <= set(dice):
+            elif {2, 3, 4, 5} <= set(self.dice):
                 score = 30
-            elif {3, 4, 5, 6} <= set(dice):
+            elif {3, 4, 5, 6} <= set(self.dice):
                 score = 30
 
         elif category is CategoryType.LARGE_STRAIGHT:
             # A large straight is worth 40 points.
-            if {1, 2, 3, 4, 5} <= set(dice):
+            if {1, 2, 3, 4, 5} <= set(self.dice):
                 score = 40
-            elif {2, 3, 4, 5, 6} <= set(dice):
+            elif {2, 3, 4, 5, 6} <= set(self.dice):
                 score = 40
 
         elif category is CategoryType.YAHTZEE:
@@ -181,9 +236,10 @@ class Game(ndb.Model):
 
         elif category is CategoryType.CHANCE:
             # Sum of all five dice.
-            score = sum(dice)
+            score = sum(self.dice)
 
-        return score
+        self.category_scores[str(category)] = score
+        return self.to_form()
 
 
     def calculateUpperSectionTotal(self):
@@ -206,14 +262,14 @@ class Game(ndb.Model):
 
         return total        
 
-    def totalOf(self, value, dice):
+    def totalOf(self, value):
         """
         Returns the sum of dice of a given value.
         For example, if dice = [1,3,5,3,4] and value = 3, 
         then 6 (3+3) is returned.
         """
         score = 0
-        for d in dice:
+        for d in self.dice:
             if d is value:
                 score += d
         return score
@@ -256,13 +312,14 @@ class GameForm(messages.Message):
     user_name = messages.StringField(3, required=True)
     turn_count = messages.IntegerField(4, required=True)
     has_incomplete_turn = messages.BooleanField(5, required=True)
-
     upper_section_total = messages.IntegerField(6, required=True)
     bonus_points = messages.IntegerField(7, required=True)
     category_scores = messages.StringField(8, required=True)
-    yahzee_bonus_count = messages.IntegerField(9, required=True)
+    yahtzee_bonus_count = messages.IntegerField(9, required=True)
     final_score = messages.IntegerField(10, required=True)
-
+    dice = messages.IntegerField(11, repeated=True)
+    roll_count = messages.IntegerField(12, required=True)
+    history = messages.StringField(13, required=True) 
 
 class GameForms(messages.Message):
     """Form to return list of games"""
@@ -291,3 +348,6 @@ class StringMessage(messages.Message):
 
 class GameHistoryForm(messages.Message):
     history = messages.StringField(1, required=True)    
+
+class ScoreRollForm(messages.Message):
+    category_type = messages.EnumField('CategoryType', 1)        

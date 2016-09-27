@@ -41,6 +41,22 @@ A Yahtzee occurs when all five dice are the same. If a player throws a Yahtzee b
     - Description: Creates a new User.  user_name must be provided and must be unique.
     - Exceptions: A ConflictException will be raised if a User with that user_name already exists.
 
+- **update_user**
+    - Path: 'user/{user_name}'
+    - Method: PUT
+    - Parameters: user_name, high_score
+    - Returns: UserForm.
+    - Description: Updates the User email and/or high_score.  (Used mainly for testing the API)
+    - Exceptions: A NotFoundException will be raised if the User is not found.
+
+- **delete_user**
+    - Path: 'user/{user_name}'
+    - Method: DELETE
+    - Parameters: user_name
+    - Returns: Nothing
+    - Description: Deletes the User
+    - Exceptions: A NotFoundException will be raised if the User is not found.
+
 - **get_users**
     - Path: 'user'
     - Method: GET
@@ -49,14 +65,6 @@ A Yahtzee occurs when all five dice are the same. If a player throws a Yahtzee b
     - Description: Returns all Users in the database.
     - Exceptions: None
 
-- **get_user**
-    - Path: 'user/{urlsafe_user_key}'
-    - Method: GET
-    - Parameters: urlsafe_user_key
-    - Returns: UserForm.
-    - Description: Returns the information for a specific User.
-    - Exceptions: A NotFoundException will be raised if the User is not found. 
-
 - **create_game**
     - Path: 'game'
     - Method: POST
@@ -64,14 +72,6 @@ A Yahtzee occurs when all five dice are the same. If a player throws a Yahtzee b
     - Returns: GameForm with initial game state.
     - Description: Creates a new Game for the user.
     - Exceptions: A NotFoundException will be raised if the User is not found. 
-
-- **get_games**
-    - Path: 'game'
-    - Method: GET
-    - Parameters: None
-    - Returns: GameForms
-    - Description: Returns all Games in the database.
-    - Exceptions: None
 
 - **get_game**
     - Path: 'game/{urlsafe_game_key}'
@@ -88,6 +88,14 @@ A Yahtzee occurs when all five dice are the same. If a player throws a Yahtzee b
     - Returns: StringMessage confirming deletion of game.
     - Description: Deletes the game.
     - Exceptions: A BadRequestException will be raised if the game is already over.  A NotFoundException will be raised if the Game is not found.
+
+- **get_games**
+    - Path: 'game'
+    - Method: GET
+    - Parameters: None
+    - Returns: GameForms
+    - Description: Returns all Games in the database.
+    - Exceptions: None
 
 - **get_game_history**
     - Path: 'game/{urlsafe_game_key}/history'

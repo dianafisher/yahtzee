@@ -11,7 +11,7 @@ from google.appengine.ext import ndb
 
 from user import User, UserForm, UserForms
 from game import Game, GameForm, GameForms, StringMessage, \
-    GameHistoryForm, Score, ScoreForms, HighScoresForm
+    GameHistoryForm, Score, ScoreForms, HighScoresForm, ScoreRollForm
 
 from turn import Turn, TurnForm
 
@@ -34,11 +34,19 @@ NEW_USER_REQUEST = endpoints.ResourceContainer(
     user_name=messages.StringField(1),
     email=messages.StringField(2))
 
-GET_USER_REQUEST = endpoints.ResourceContainer(
-  urlsafe_user_key=messages.StringField(1))
+UPDATE_USER_REQUEST = endpoints.ResourceContainer(
+    user_name=messages.StringField(1),
+    email=messages.StringField(2),
+    high_score=messages.IntegerField(3))
+
+DELETE_USER_REQUEST = endpoints.ResourceContainer(
+    user_name=messages.StringField(1))
 
 NEW_GAME_REQUEST = endpoints.ResourceContainer(
     user_name=messages.StringField(1, required=True))
+
+UPDATE_GAME_REQUEST = endpoints.ResourceContainer(
+  urlsafe_game_key=messages.StringField(1))
 
 NEW_TURN_REQUEST = endpoints.ResourceContainer(
     urlsafe_game_key=messages.StringField(1))
@@ -48,6 +56,10 @@ GET_GAME_REQUEST = endpoints.ResourceContainer(
 
 USER_GAMES_REQUEST = endpoints.ResourceContainer(
     user_name=messages.StringField(1))
+
+SCORE_ROLL_REQUEST = endpoints.ResourceContainer(
+  ScoreRollForm,
+  urlsafe_game_key=messages.StringField(1))
 
 SCORE_TURN_REQUEST = endpoints.ResourceContainer(
     ScoreTurnForm,
@@ -93,18 +105,55 @@ class YahtzeeApi(remote.Service):
         return user.to_form()
 
     # Get user
-    @endpoints.method(request_message=GET_USER_REQUEST,
+    @endpoints.method(request_message=DELETE_USER_REQUEST,
                       response_message=UserForm,
-                      path='user/{urlsafe_user_key}',
+                      path='user/{user_name}',
                       name='get_user',
                       http_method='GET')
     def get_user(self, request):
-      """Returns the user"""
-      user = get_by_urlsafe(request.urlsafe_user_key, User)
+      """Returns the user"""      
+      print request.user_name
+      user = User.query(User.name == request.user_name).get()
       if user:
           return user.to_form()
       else:
+          raise endpoints.NotFoundException('User {} not found!'.format(request.user_name))
+
+    # Update User
+    @endpoints.method(request_message=UPDATE_USER_REQUEST,
+                      response_message=UserForm,
+                      path='user/{user_name}',
+                      name='update_user',
+                      http_method='PUT')
+    def update_user(self, request):
+      """Updates the User."""
+      user = User.query(User.name == request.user_name).get()
+      if user:
+          if request.email:
+            user.email = request.email
+          if request.high_score:
+            user.high_score = request.high_score
+          user.put()
+          return user.to_form()
+      else:
           raise endpoints.NotFoundException('User not found!')
+
+    # Delete User
+    @endpoints.method(request_message=DELETE_USER_REQUEST,
+                      response_message=StringMessage,
+                      path='user/{user_name}',
+                      name='delete_user',
+                      http_method='DELETE')
+    def delete_user(self, request):
+      """Deletes the User."""
+      print request.user_name
+      user = User.query(User.name == request.user_name).get()
+      if user:
+        user.key.delete()
+        return StringMessage(message='User {} deleted.'.
+                                 format(request.user_name))
+      else:
+        raise endpoints.NotFoundException('User not found!')
 
     # Get user rankings
     @endpoints.method(response_message=UserForms,
@@ -141,9 +190,7 @@ class YahtzeeApi(remote.Service):
                 'A User with that name does not exist!')
 
         game = Game.new_game(user.key)
-
-        # Create a new scorecard for this game
-        score_card = Scorecard.new_scorecard(game.key)
+        
         return game.to_form()
 
     # Get all games
@@ -207,73 +254,136 @@ class YahtzeeApi(remote.Service):
         else:
             raise endpoints.NotFoundException('Game not found!')
 
-    # Create a new Turn
-    @endpoints.method(request_message=NEW_TURN_REQUEST,
-                      response_message=TurnForm,
-                      path='game/{urlsafe_game_key}/turn',
-                      name='create_turn',
+    # Roll dice
+    @endpoints.method(request_message=UPDATE_GAME_REQUEST,
+                      response_message=GameForm,
+                      path='game/{urlsafe_game_key}/roll',
+                      name='roll_dice',
                       http_method='POST')
-    def create_turn(self, request):
-        """Creates a new turn for the game.  
-        Also performs the first roll of the dice for the turn."""
-        game = get_by_urlsafe(request.urlsafe_game_key, Game)
-        if not game:
-            raise endpoints.NotFoundException('Game not found!')
-        if game.game_over:
-            raise endpoints.NotFoundException('Game is already over!')
-        if game.has_incomplete_turn:
-            raise endpoints.ConflictException('Cannot start a new turn until current turn is scored!')
+    def roll_dice(self, request):
+      """Rolls the dice in a new turn."""
+      game = get_by_urlsafe(request.urlsafe_game_key, Game)
+      if not game:
+          raise endpoints.NotFoundException('Game not found!')
+      if game.game_over:
+          raise endpoints.NotFoundException('Game is already over!')
+      if game.has_incomplete_turn:
+          raise endpoints.ConflictException('Cannot start a new turn until current turn is scored!')
 
-        # Increase the game turn count
-        game.turn_count += 1
-        print 'game.turn_count:', game.turn_count
-        turn = Turn.new_turn(game.key, game.turn_count)
-        
-        game.has_incomplete_turn = True
-        game.history[game.turn_count] = []
-        history_entry = (1, turn.dice)
-        game.history[game.turn_count].append(history_entry)
-        game.put()
+      return game.roll_dice()
 
-        return turn.to_form()
-
-    # Roll dice again in the current Turn
-    @endpoints.method(request_message=ROLL_AGAIN_REQUEST,
-                      response_message=TurnForm,
-                      path='turn/{urlsafe_turn_key}/roll',
+    # Roll dice again.
+    @endpoints.method(request_message=UPDATE_GAME_REQUEST,
+                      response_message=GameForm,
+                      path='game/{urlsafe_game_key}/reroll',
                       name='roll_again',
                       http_method='POST')
     def roll_again(self, request):
-        """
-          Roll dice again after first roll of a turn.  
-          An array of integers indiciting the dice to 'keep' 
-          from the previous roll must be provided.
-          A value of '0' indicates the die at that index should be replaced.
-          A value of '1' indicates the die at that index should be kept.
+      game = get_by_urlsafe(request.urlsafe_game_key, Game)
+      if not game:
+          raise endpoints.NotFoundException('Game not found!')
+      if game.game_over:
+          raise endpoints.NotFoundException('Game is already over!')
 
-          Example A: [0,1,1,0,0] means the dice at index 1 and 2 
-                      should be kept, all others replaced.
-          Example B: [0,0,0,0,0] means all dice should be replaced.
-          """
+      keepers = request.keepers
+      if len(keepers) != 5:
+        raise endpoints.ConflictException(
+          'Keepers array must have five elements (0 or 1).')
 
-        # Get the turn
-        turn = get_by_urlsafe(request.urlsafe_turn_key, Turn)
-        if not turn:
-            raise endpoints.NotFoundException('Turn not found')
-        if turn.is_complete:
-            message = ('Turn {} is already complete.').format(
-                request.urlsafe_turn_key)
-            raise endpoints.ConflictException(message)
-        if turn.roll_count == 3:
-            raise endpoints.ConflictException(
-                'Already rolled dice 3 times in this turn.')
+      if game.roll_count == 3:
+        raise endpoints.ConflictException('Already rolled dice 3 times in this turn.')
+      
+      return game.roll_again(keepers)
 
-        keepers = request.keepers
-        if len(keepers) != 5:
-            raise endpoints.ConflictException(
-                'Keepers array must have five elements (0 or 1).')
+    # Score the current roll
+    @endpoints.method(request_message=SCORE_ROLL_REQUEST,
+                      response_message=GameForm,
+                      path='game/{urlsafe_game_key}/score',
+                      name='score_roll',
+                      http_method='POST')
+    def score_roll(self, request):
+      game = get_by_urlsafe(request.urlsafe_game_key, Game)
+      if not game:
+          raise endpoints.NotFoundException('Game not found!')
+      
+      category_type = request.category_type
+      print 'category_type:', category_type
+      print game.category_scores.keys()
+      if str(category_type) not in game.category_scores.keys():
+        message = ('Category {} not found!').format(category_type)
+        raise endpoints.ConflictException(message)
+      
+      # Calculate the score based on the category selected.
+      return game.score_roll(category_type)
 
-        return turn.roll_dice(request.keepers)
+
+    # # Create a new Turn
+    # @endpoints.method(request_message=NEW_TURN_REQUEST,
+    #                   response_message=TurnForm,
+    #                   path='game/{urlsafe_game_key}/turn',
+    #                   name='create_turn',
+    #                   http_method='POST')
+    # def create_turn(self, request):
+    #     """Creates a new turn for the game.  
+    #     Also performs the first roll of the dice for the turn."""
+    #     game = get_by_urlsafe(request.urlsafe_game_key, Game)
+    #     if not game:
+    #         raise endpoints.NotFoundException('Game not found!')
+    #     if game.game_over:
+    #         raise endpoints.NotFoundException('Game is already over!')
+    #     if game.has_incomplete_turn:
+    #         raise endpoints.ConflictException('Cannot start a new turn until current turn is scored!')
+
+    #     # Increase the game turn count
+    #     game.turn_count += 1
+    #     print 'game.turn_count:', game.turn_count
+    #     turn = Turn.new_turn(game.key, game.turn_count)
+        
+    #     game.has_incomplete_turn = True
+    #     game.history[game.turn_count] = []
+    #     history_entry = (1, turn.dice)
+    #     game.history[game.turn_count].append(history_entry)
+    #     game.put()
+
+    #     return turn.to_form()
+
+    # # Roll dice again in the current Turn
+    # @endpoints.method(request_message=ROLL_AGAIN_REQUEST,
+    #                   response_message=TurnForm,
+    #                   path='turn/{urlsafe_turn_key}/roll',
+    #                   name='roll_again',
+    #                   http_method='POST')
+    # def roll_again(self, request):
+    #     """
+    #       Roll dice again after first roll of a turn.  
+    #       An array of integers indiciting the dice to 'keep' 
+    #       from the previous roll must be provided.
+    #       A value of '0' indicates the die at that index should be replaced.
+    #       A value of '1' indicates the die at that index should be kept.
+
+    #       Example A: [0,1,1,0,0] means the dice at index 1 and 2 
+    #                   should be kept, all others replaced.
+    #       Example B: [0,0,0,0,0] means all dice should be replaced.
+    #       """
+
+    #     # Get the turn
+    #     turn = get_by_urlsafe(request.urlsafe_turn_key, Turn)
+    #     if not turn:
+    #         raise endpoints.NotFoundException('Turn not found')
+    #     if turn.is_complete:
+    #         message = ('Turn {} is already complete.').format(
+    #             request.urlsafe_turn_key)
+    #         raise endpoints.ConflictException(message)
+    #     if turn.roll_count == 3:
+    #         raise endpoints.ConflictException(
+    #             'Already rolled dice 3 times in this turn.')
+
+    #     keepers = request.keepers
+    #     if len(keepers) != 5:
+    #         raise endpoints.ConflictException(
+    #             'Keepers array must have five elements (0 or 1).')
+
+    #     return turn.roll_dice(request.keepers)
 
     # Score the current Turn
     @endpoints.method(request_message=SCORE_TURN_REQUEST,

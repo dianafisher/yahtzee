@@ -13,3 +13,5 @@ Category scores are held in a dictionary with the category type string as the ke
 When the scorecard is full, the game is over and the final score is calculated.  Any bonuses awarded along the way are added to the final score.
 
 Do we need a separate entity for Turns?  Maybe everything can just be stored in the Game object.
+
+How to represent score?  Just a number?
