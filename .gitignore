@@ -1,6 +1,6 @@
 # Compiled source #
 ###################
-.pyc
+*.pyc
 
 # OS generated files #
 ######################
