@@ -95,15 +95,19 @@ class Game(ndb.Model):
         
         # Update the game history.        
         entry = (self.roll_count, self.dice)
-        if self.turn_count not in self.history :
-            self.history[self.turn_count] = []        
-        self.history[self.turn_count].append(entry)
+        self.update_history(entry)
 
         # Save changes
         self.put()
 
         # Return GameForm
         return self.to_form()
+
+    def update_history(self, entry):
+        if self.turn_count not in self.history :
+            self.history[self.turn_count] = []
+
+        self.history[self.turn_count].append(entry)
 
     def roll_dice(self):    
         """Rolls the dice for a new turn.  Must score any previous turn before calling this method."""        
@@ -120,9 +124,7 @@ class Game(ndb.Model):
        
         # Update the game history.
         entry = (self.roll_count, self.dice)           
-        if self.turn_count not in self.history :
-            self.history[self.turn_count] = []        
-        self.history[self.turn_count].append(entry)
+        self.update_history(entry)
 
         # Save changes
         self.put()
@@ -239,6 +241,10 @@ class Game(ndb.Model):
             score = sum(self.dice)
 
         self.category_scores[str(category)] = score
+
+        # Update the game history.
+        entry = (str(category), score)
+        self.update_history(entry)
 
         # Mark the turn complete
         self.has_incomplete_turn = False
