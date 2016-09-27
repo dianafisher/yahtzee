@@ -239,6 +239,15 @@ class Game(ndb.Model):
             score = sum(self.dice)
 
         self.category_scores[str(category)] = score
+
+        # Mark the turn complete
+        self.has_incomplete_turn = False
+        # Reinitialize items for next turn.
+        self.roll_count = 0
+        self.dice = []
+        # Save game
+        self.put()
+
         return self.to_form()
 
 

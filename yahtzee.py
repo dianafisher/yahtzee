@@ -66,7 +66,7 @@ SCORE_TURN_REQUEST = endpoints.ResourceContainer(
     urlsafe_turn_key=messages.StringField(1))
 
 ROLL_AGAIN_REQUEST = endpoints.ResourceContainer(
-    urlsafe_turn_key=messages.StringField(1),
+    urlsafe_game_key=messages.StringField(1),
     keepers=messages.IntegerField(2, repeated=True))
 
 SCORECARD_REQUEST = endpoints.ResourceContainer(
@@ -273,7 +273,7 @@ class YahtzeeApi(remote.Service):
       return game.roll_dice()
 
     # Roll dice again.
-    @endpoints.method(request_message=UPDATE_GAME_REQUEST,
+    @endpoints.method(request_message=ROLL_AGAIN_REQUEST,
                       response_message=GameForm,
                       path='game/{urlsafe_game_key}/reroll',
                       name='roll_again',
