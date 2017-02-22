@@ -1,4 +1,6 @@
 import endpoints
+import jinja2
+
 from protorpc import messages
 from protorpc import message_types
 from protorpc import remote
@@ -42,6 +44,9 @@ UPDATE_USER_REQUEST = endpoints.ResourceContainer(
 DELETE_USER_REQUEST = endpoints.ResourceContainer(
     user_name=messages.StringField(1))
 
+GET_USER_REQUEST = endpoints.ResourceContainer(
+    urlsafe_user_key=messages.StringField(1))
+
 NEW_GAME_REQUEST = endpoints.ResourceContainer(
     user_name=messages.StringField(1, required=True))
 
@@ -77,24 +82,43 @@ HIGH_SCORES_REQUEST = endpoints.ResourceContainer(
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
+TEMPLATE_DIR = os.path.join(os.path.dirname(__file__), 'templates')
+JINJA_ENVIRONMENT = jinja2.Environment(
+    loader=jinja2.FileSystemLoader(TEMPLATE_DIR),
+    autoescape=True)
+
+
+def render_str(template, **params):
+    t = JINJA_ENVIRONMENT.get_template(template)
+    return t.render(params)
+
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
 # @endpoints.api( name='yahtzee',
 #                 version='v1',
 #                 allowed_client_ids=[WEB_CLIENT_ID, API_EXPLORER_CLIENT_ID],
 #                 scopes=[EMAIL_SCOPE])
 
+"""Yahtzee API v0.1
+"""
+
 
 @endpoints.api(name='yahtzee', version='v1')
 class YahtzeeApi(remote.Service):
-    """Yahtzee API v0.1"""
+    """
+        POST /users
 
-    # Create user
+        Creates a new user
+    """
     @endpoints.method(request_message=NEW_USER_REQUEST,
                       response_message=UserForm,
-                      path='user',
+                      path='users',
                       name='create_user',
                       http_method='POST')
     def create_user(self, request):
-        """Creates a User. Requires a unique username."""
+        """Creates a User. Requires a unique username.
+        """
         if User.query(User.name == request.user_name).get():
             raise endpoints.ConflictException(
                 'A User with that name already exists!')
@@ -104,60 +128,73 @@ class YahtzeeApi(remote.Service):
         #         request.user_name))
         return user.to_form()
 
-    # Get user
-    @endpoints.method(request_message=DELETE_USER_REQUEST,
+    """
+        GET /users/{urlsafe_user_key}
+
+        Retrieves a specific user by id
+    """
+    @endpoints.method(request_message=GET_USER_REQUEST,
                       response_message=UserForm,
-                      path='user/{user_name}',
+                      path='users/{urlsafe_user_key}',
                       name='get_user',
                       http_method='GET')
     def get_user(self, request):
-      """Returns the user"""      
-      print request.user_name
-      user = User.query(User.name == request.user_name).get()
-      if user:
-          return user.to_form()
-      else:
-          raise endpoints.NotFoundException('User {} not found!'.format(request.user_name))
+        """Returns the user
+        """
+        user = get_by_urlsafe(request.urlsafe_user_key, User)
+        if user:
+            return user.to_form()
+        else:
+            raise endpoints.NotFoundException('User {} not found!'.format(request.urlsafe_user_key))
 
-    # Update User
+    """
+      PUT /users/{user_name}
+
+        Updates user with username
+    """
     @endpoints.method(request_message=UPDATE_USER_REQUEST,
                       response_message=UserForm,
-                      path='user/{user_name}',
+                      path='users/{user_name}',
                       name='update_user',
                       http_method='PUT')
     def update_user(self, request):
-      """Updates the User."""
-      user = User.query(User.name == request.user_name).get()
-      if user:
-          if request.email:
-            user.email = request.email
-          if request.high_score:
-            user.high_score = request.high_score
-          user.put()
-          return user.to_form()
-      else:
-          raise endpoints.NotFoundException('User not found!')
+        """Updates the User.
+        """
+        user = User.query(User.name == request.user_name).get()
+        if user:
+            if request.email:
+                user.email = request.email
+            if request.high_score:
+                user.high_score = request.high_score
+            user.put()
+            return user.to_form()
+        else:
+            raise endpoints.NotFoundException('User not found!')
 
-    # Delete User
+    """
+        DELETE /users/{user_name}
+
+        Deletes user with username
+    """
     @endpoints.method(request_message=DELETE_USER_REQUEST,
                       response_message=StringMessage,
-                      path='user/{user_name}',
+                      path='users/{user_name}',
                       name='delete_user',
                       http_method='DELETE')
     def delete_user(self, request):
-      """Deletes the User."""
-      print request.user_name
-      user = User.query(User.name == request.user_name).get()
-      if user:
-        user.key.delete()
-        return StringMessage(message='User {} deleted.'.
-                                 format(request.user_name))
-      else:
-        raise endpoints.NotFoundException('User not found!')
+        """Deletes the User.
+        """
+        print request.user_name
+        user = User.query(User.name == request.user_name).get()
+        if user:
+            user.key.delete()
+            return StringMessage(message='User {} deleted.'.format(request.user_name))
+        else:
+            raise endpoints.NotFoundException('User not found!')
 
     # Get user rankings
     @endpoints.method(response_message=UserForms,
-                      path='user/ranking',
+                      path='users/rankings',
                       name='get_user_rankings',
                       http_method='GET')
     def get_user_rankings(self, request):
@@ -166,19 +203,29 @@ class YahtzeeApi(remote.Service):
         users = sorted(users, key=lambda x: x.high_score, reverse=True)
         return UserForms(users=[user.to_form() for user in users])
 
-    # Get all users
+    """
+        GET /users
+
+        Retrieves a list of users
+    """
+
     @endpoints.method(response_message=UserForms,
-                      path='user',
+                      path='users',
                       name='get_users',
                       http_method='GET')
     def get_users(self, request):
         """Returns all Users in the database."""
         return UserForms(users=[user.to_form() for user in User.query()])
 
-    # Create new game for user
+    """
+        POST /games
+
+        Create new game for user
+    """
+
     @endpoints.method(request_message=NEW_GAME_REQUEST,
                       response_message=GameForm,
-                      path='game',
+                      path='games',
                       name='create_game',
                       http_method='POST')
     def create_game(self, request):
@@ -190,17 +237,22 @@ class YahtzeeApi(remote.Service):
                 'A User with that name does not exist!')
 
         game = Game.new_game(user.key)
-        
+
         return game.to_form()
 
-    # Get all games
+    """
+        GET /games
+
+        Retrieves a list of games
+    """
+
     @endpoints.method(response_message=GameForms,
-                      path='game',
+                      path='games',
                       name='get_games',
                       http_method='GET')
     def get_games(self, request):
-      """Returns all Games in the database."""
-      return GameForms(games=[game.to_form() for game in Game.query()])
+        """Returns all Games in the database."""
+        return GameForms(games=[game.to_form() for game in Game.query()])
 
 
     # Get a game
@@ -292,7 +344,7 @@ class YahtzeeApi(remote.Service):
 
       if game.roll_count == 3:
         raise endpoints.ConflictException('Already rolled dice 3 times in this turn.')
-      
+
       return game.roll_again(keepers)
 
     # Score the current roll
@@ -305,14 +357,14 @@ class YahtzeeApi(remote.Service):
       game = get_by_urlsafe(request.urlsafe_game_key, Game)
       if not game:
           raise endpoints.NotFoundException('Game not found!')
-      
+
       category_type = request.category_type
       print 'category_type:', category_type
       print game.category_scores.keys()
       if str(category_type) not in game.category_scores.keys():
         message = ('Category {} not found!').format(category_type)
         raise endpoints.ConflictException(message)
-      
+
       # Calculate the score based on the category selected.
       return game.score_roll(category_type)
 
@@ -324,7 +376,7 @@ class YahtzeeApi(remote.Service):
     #                   name='create_turn',
     #                   http_method='POST')
     # def create_turn(self, request):
-    #     """Creates a new turn for the game.  
+    #     """Creates a new turn for the game.
     #     Also performs the first roll of the dice for the turn."""
     #     game = get_by_urlsafe(request.urlsafe_game_key, Game)
     #     if not game:
@@ -338,7 +390,7 @@ class YahtzeeApi(remote.Service):
     #     game.turn_count += 1
     #     print 'game.turn_count:', game.turn_count
     #     turn = Turn.new_turn(game.key, game.turn_count)
-        
+
     #     game.has_incomplete_turn = True
     #     game.history[game.turn_count] = []
     #     history_entry = (1, turn.dice)
@@ -355,13 +407,13 @@ class YahtzeeApi(remote.Service):
     #                   http_method='POST')
     # def roll_again(self, request):
     #     """
-    #       Roll dice again after first roll of a turn.  
-    #       An array of integers indiciting the dice to 'keep' 
+    #       Roll dice again after first roll of a turn.
+    #       An array of integers indiciting the dice to 'keep'
     #       from the previous roll must be provided.
     #       A value of '0' indicates the die at that index should be replaced.
     #       A value of '1' indicates the die at that index should be kept.
 
-    #       Example A: [0,1,1,0,0] means the dice at index 1 and 2 
+    #       Example A: [0,1,1,0,0] means the dice at index 1 and 2
     #                   should be kept, all others replaced.
     #       Example B: [0,0,0,0,0] means all dice should be replaced.
     #       """
@@ -394,7 +446,7 @@ class YahtzeeApi(remote.Service):
     def score_turn(self, request):
         """
         Calculates the score for the Turn.
-        Required Params: url safe key for the Turn and the 
+        Required Params: url safe key for the Turn and the
         scoring category.
         """
 
@@ -426,7 +478,7 @@ class YahtzeeApi(remote.Service):
         # Check if there is already a score entered for the selected category.
         current_score = scorecard.category_scores[str(category_type)]
 
-        """The YAHTZEE category is the only category which can be scored more than once. 
+        """The YAHTZEE category is the only category which can be scored more than once.
            So check the category type and whether or not the category had already been scored.
         """
         if category_type is not 'YAHZTEE' and current_score > -1:
@@ -448,7 +500,7 @@ class YahtzeeApi(remote.Service):
 
         # Turn is now complete
         game.has_incomplete_turn = False
-        turn.is_complete = True        
+        turn.is_complete = True
         turn.put()
 
         # Save the updated scorecard values.
@@ -466,7 +518,7 @@ class YahtzeeApi(remote.Service):
 
             # End the game
             game.game_over(final_score)
-            
+
         # Save the changes made to game
         game.put()
 
@@ -505,7 +557,7 @@ class YahtzeeApi(remote.Service):
         scorecard = Scorecard.query(Scorecard.game == game.key).get()
         if not scorecard:
           raise endpoints.NotFoundException('Scorecard not found!')
-        
+
         return scorecard.to_form()
 
     # Get high scores

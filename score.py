@@ -3,7 +3,7 @@ from protorpc import messages
 from google.appengine.ext import ndb
 
 """
-models.py - This file contains the class definitions for the Datastore
+score.py - This file contains the class definitions for the Datastore
 entities used by the game.
 """
 
@@ -11,12 +11,12 @@ entities used by the game.
 class Score(ndb.Model):
     """Score object"""
     user = ndb.KeyProperty(required=True, kind='User')
-    date = ndb.DateProperty(required=True)
-    score = ndb.IntegerProperty(required=True)
+    date = ndb.DateProperty(required=True)    
+    score = ndb.IntegerProperty(required=True)    
 
     def to_form(self):
         return ScoreForm(user_name=self.user.get().name,
-                         date=str(self.date),
+                         date=str(self.date), 
                          score=self.score)
 
 
@@ -34,12 +34,6 @@ class ScoreForms(messages.Message):
     items = messages.MessageField(ScoreForm, 1, repeated=True)
 
 
-class StringMessage(messages.Message):
-    """StringMessage-- outbound (single) string message"""
-    message = messages.StringField(1, required=True)
-
-class GameHistoryForm(messages.Message):
-    history = messages.StringField(1, required=True)
 
 class HighScoresForm(messages.Message):
     scores = messages.IntegerField(1, repeated=True)
